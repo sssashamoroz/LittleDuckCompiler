@@ -1,0 +1,15 @@
+{
+  "originHash" : "1900dc0dcc57a72a20e74a3cec53c0f62db78a3cab4798b0c69ac58576013e54",
+  "pins" : [
+    {
+      "identity" : "antlr4-tmp-1730326961",
+      "kind" : "localSourceControl",
+      "location" : "/private/tmp/Antlr4-tmp-1730326961",
+      "state" : {
+        "revision" : "0a4916f1c529571ef3d31dca592aeca7ff998094",
+        "version" : "4.0.0"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D749732F2CD2E987005C9267 /* Antlr4 in Frameworks */ = {isa = PBXBuildFile; productRef = D749732E2CD2E987005C9267 /* Antlr4 */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		D71D75A82CD2E6AC00A52EE1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D749732F2CD2E987005C9267 /* Antlr4 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = LittleDuckCompiler;
 			packageProductDependencies = (
+				D749732E2CD2E987005C9267 /* Antlr4 */,
 			);
 			productName = LittleDuckCompiler;
 			productReference = D71D75972CD2E6AA00A52EE1 /* LittleDuckCompiler.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = D71D758E2CD2E6AA00A52EE1;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D749732D2CD2E987005C9267 /* XCRemoteSwiftPackageReference "Antlr4-tmp-1730326961" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D71D75982CD2E6AA00A52EE1 /* Products */;
 			projectDirPath = "";
@@ -558,6 +567,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D749732D2CD2E987005C9267 /* XCRemoteSwiftPackageReference "Antlr4-tmp-1730326961" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "/private/tmp/Antlr4-tmp-1730326961";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D749732E2CD2E987005C9267 /* Antlr4 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D749732D2CD2E987005C9267 /* XCRemoteSwiftPackageReference "Antlr4-tmp-1730326961" */;
+			productName = Antlr4;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D71D758F2CD2E6AA00A52EE1 /* Project object */;
 }
