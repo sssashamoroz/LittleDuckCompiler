@@ -213,7 +213,7 @@ assignment
               throw CompilerError.missingValueForAssignment(variable: $ID.text)
           }
 
-          QuadrupleGenerator.shared.addQuadruple(op: "=", operand1: value, operand2: "", result: $ID.text)
+          QuadrupleGenerator.shared.addQuadruple(op: "=", operand1: value, operand2: "_", result: $ID.text)
       }
     ;
 
@@ -254,7 +254,33 @@ elseBody
 ;
 
 loop
-    : 'while' '(' comparisonExpression ')' 'do' body ';'
+    : 'while' '(' comparisonExpression ')' 'do' {
+          // Save the current quadruple index as the loop's start point
+          let loopStartIndex = QuadrupleGenerator.shared.currentQuadrupleIndex
+          ParserHelper.shared.pushJump(loopStartIndex) // Push start index to jump stack
+
+          // Evaluate the condition
+          guard let conditionOperand = ParserHelper.shared.popOperand() else {
+              fatalError("Missing condition operand for WHILE loop")
+          }
+
+          // Generate GotoF quadruple for the condition
+          let gotoFalseIndex = QuadrupleGenerator.shared.addQuadruple(op: "GotoF", operand1: conditionOperand, operand2: "_", result: "_")
+          ParserHelper.shared.pushJump(gotoFalseIndex) // Push GotoF index to jump stack
+      }
+      body ';' {
+          // Generate Goto to jump back to the start of the loop
+          guard let loopStartIndex = ParserHelper.shared.popJump() else {
+              fatalError("Missing loop start index for WHILE loop")
+          }
+          QuadrupleGenerator.shared.addQuadruple(op: "Goto", operand1: "_", operand2: "_", result: "\(loopStartIndex)")
+
+          // Backpatch the GotoF to jump to the end of the loop body
+          guard let gotoFalseIndex = ParserHelper.shared.popJump() else {
+              fatalError("Missing GotoF index for backpatching in WHILE loop")
+          }
+          QuadrupleGenerator.shared.fillJumpTarget(gotoFalseIndex, with: QuadrupleGenerator.shared.currentQuadrupleIndex)
+      }
     ;
 
 body

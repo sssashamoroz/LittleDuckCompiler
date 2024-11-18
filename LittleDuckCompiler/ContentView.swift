@@ -11,26 +11,20 @@ import Antlr4
 
 struct ContentView: View {
     @State private var sourceCode: String = """
-    program simpleTest;
-    vars 
-        x, y : int;
-        z : float;
+    program testWhile;
+    vars
+        x : int;
     begin
     {
-        x = 10;
-        y = 5;
-        if (x > y) 
+        x = 0;
+        while (x < 5) do
         {
-            z = x + y;
-        }
-        else 
-        {
-            z = x - y;
-        }
+            x = x + 1;
+        };
     }
     end
     """
-    
+        
     @State private var parseTreeOutput: String = "" // For displaying the Parse Tree
     @State private var quadrupleOutput: String = "" // For displaying the Quadruples
     @State private var variableTableOutput: String = "" // For displaying the Variable Table
@@ -46,7 +40,7 @@ struct ContentView: View {
                     
                     TextEditor(text: $sourceCode)
                         .border(Color.gray, width: 1)
-                        .frame(height: geometry.size.height * 0.4)
+                        .frame(height: geometry.size.height * 0.6)
                     
                     Button(action: {
                         // Parse the source code
@@ -163,7 +157,7 @@ func parseCode(_ input: String) -> (String, [Quadruple]) {
 }
 
 
-var test1 = """
+var testConditionals = """
     program prueba;
     vars 
         x, y : int;
@@ -171,12 +165,34 @@ var test1 = """
     begin
     {
         x = 10;
+        if (z > 20.0) 
+        {   
+            if ( x == 10)
+            {
+                z = 300;
+            }
+        }
+        else 
+        {
+            z = 10;
+        }
         y = 5;
         z = (x + y) * (x - y) / 2;
-        if (z > 20.0) 
-        {
-            z = 300;
-        }
     }
     end
+"""
+
+var testLoops = """
+program testWhile;
+vars
+    x : int;
+begin
+{
+    x = 0;
+    while (x < 5) do
+    {
+        x = x + 1;
+    };
+}
+end
 """

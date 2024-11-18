@@ -26,11 +26,11 @@ class QuadrupleGenerator {
     }
     
     func addPlaceholderJump(condition: String) -> Int {
-        return addQuadruple(op: "GotoF", operand1: condition, operand2: "", result: "") // Provide empty operand2
+        return addQuadruple(op: "GotoF", operand1: condition, operand2: "_", result: "_") // Provide empty operand2
     }
     
     func addUnconditionalJump() -> Int {
-        return addQuadruple(op: "Goto", operand1: "", operand2: "", result: "") // Provide empty operand2
+        return addQuadruple(op: "Goto", operand1: "_", operand2: "_", result: "_") // Provide empty operand2
     }
     
     func getQuadruples() -> [Quadruple] {
