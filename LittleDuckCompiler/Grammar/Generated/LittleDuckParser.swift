@@ -16,13 +16,13 @@ open class LittleDuckParser: Parser {
 
 	public
 	enum Tokens: Int {
-		case EOF = -1, CONST = 1, PROGRAM = 2, BEGIN = 3, END = 4, VARS = 5, VOID = 6, 
-                 WHILE = 7, DO = 8, PRINT = 9, ELSE = 10, INT_TYPE = 11, 
-                 FLOAT_TYPE = 12, LPAREN = 13, RPAREN = 14, LBRACE = 15, 
-                 RBRACE = 16, SEMICOLON = 17, COLON = 18, COMMA = 19, EQ = 20, 
-                 PLUS = 21, MINUS = 22, MUL = 23, DIV = 24, LT = 25, GT = 26, 
-                 NEQ = 27, EQEQ = 28, ID = 29, CONST_INT = 30, CONST_FLOAT = 31, 
-                 STRING_LITERAL = 32, WS = 33
+		case EOF = -1, T__0 = 1, CONST = 2, PROGRAM = 3, BEGIN = 4, END = 5, VARS = 6, 
+                 VOID = 7, WHILE = 8, DO = 9, PRINT = 10, ELSE = 11, INT_TYPE = 12, 
+                 FLOAT_TYPE = 13, LPAREN = 14, RPAREN = 15, LBRACE = 16, 
+                 RBRACE = 17, SEMICOLON = 18, COLON = 19, COMMA = 20, EQ = 21, 
+                 PLUS = 22, MINUS = 23, MUL = 24, DIV = 25, LT = 26, GT = 27, 
+                 NEQ = 28, EQEQ = 29, ID = 30, CONST_INT = 31, CONST_FLOAT = 32, 
+                 STRING_LITERAL = 33, WS = 34
 	}
 
 	public
@@ -50,14 +50,14 @@ open class LittleDuckParser: Parser {
 	]
 
 	private static let _LITERAL_NAMES: [String?] = [
-		nil, nil, "'program'", "'begin'", "'end'", "'vars'", "'void'", "'while'", 
-		"'do'", "'print'", "'else'", "'int'", "'float'", "'('", "')'", "'{'", 
-		"'}'", "';'", "':'", "','", "'='", "'+'", "'-'", "'*'", "'/'", "'<'", 
-		"'>'", "'!='", "'=='"
+		nil, "'if'", nil, "'program'", "'begin'", "'end'", "'vars'", "'void'", 
+		"'while'", "'do'", "'print'", "'else'", "'int'", "'float'", "'('", "')'", 
+		"'{'", "'}'", "';'", "':'", "','", "'='", "'+'", "'-'", "'*'", "'/'", 
+		"'<'", "'>'", "'!='", "'=='"
 	]
 	private static let _SYMBOLIC_NAMES: [String?] = [
-		nil, "CONST", "PROGRAM", "BEGIN", "END", "VARS", "VOID", "WHILE", "DO", 
-		"PRINT", "ELSE", "INT_TYPE", "FLOAT_TYPE", "LPAREN", "RPAREN", "LBRACE", 
+		nil, nil, "CONST", "PROGRAM", "BEGIN", "END", "VARS", "VOID", "WHILE", 
+		"DO", "PRINT", "ELSE", "INT_TYPE", "FLOAT_TYPE", "LPAREN", "RPAREN", "LBRACE", 
 		"RBRACE", "SEMICOLON", "COLON", "COMMA", "EQ", "PLUS", "MINUS", "MUL", 
 		"DIV", "LT", "GT", "NEQ", "EQEQ", "ID", "CONST_INT", "CONST_FLOAT", "STRING_LITERAL", 
 		"WS"
@@ -244,6 +244,8 @@ open class LittleDuckParser: Parser {
 	}
 
 	public class VariableDeclarationContext: ParserRuleContext {
+		open var _idList: IdListContext!
+		open var _type: TypeContext!
 			open
 			func idList() -> IdListContext? {
 				return getRuleContext(IdListContext.self, 0)
@@ -290,20 +292,40 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(89)
+		 	setState(90)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .ID:
 		 		try enterOuterAlt(_localctx, 1)
 		 		setState(82)
-		 		try idList()
+		 		try {
+		 				let assignmentValue = try idList()
+		 				_localctx.castdown(VariableDeclarationContext.self)._idList = assignmentValue
+		 		     }()
+
 		 		setState(83)
 		 		try match(LittleDuckParser.Tokens.COLON.rawValue)
 		 		setState(84)
-		 		try type()
+		 		try {
+		 				let assignmentValue = try type()
+		 				_localctx.castdown(VariableDeclarationContext.self)._type = assignmentValue
+		 		     }()
+
 		 		setState(85)
 		 		try match(LittleDuckParser.Tokens.SEMICOLON.rawValue)
-		 		setState(86)
+
+		 		          guard let variableNames = _localctx.castdown(VariableDeclarationContext.self)._idList.names else {
+		 		              throw CompilerError.undefinedBehavior(message: "Missing variable names.")
+		 		          }
+
+		 		          // Add each variable in the list to the VariableTable
+		 		          for name in variableNames {
+		 		              if !VariableTable.shared.addVariable(name: name, type: (_localctx.castdown(VariableDeclarationContext.self)._type != nil ? try _input.getText(_localctx.castdown(VariableDeclarationContext.self)._type!.start,_localctx.castdown(VariableDeclarationContext.self)._type!.stop) : "")) {
+		 		                  throw CompilerError.undefinedBehavior(message: "Variable \(name) already declared.")
+		 		              }
+		 		          }
+		 		      
+		 		setState(87)
 		 		try variableDeclaration()
 
 		 		break
@@ -327,6 +349,9 @@ open class LittleDuckParser: Parser {
 	}
 
 	public class IdListContext: ParserRuleContext {
+		open var names: Array<String>!
+		open var _ID: Token!
+		open var _moreIds: MoreIdsContext!
 			open
 			func ID() -> TerminalNode? {
 				return getToken(LittleDuckParser.Tokens.ID.rawValue, 0)
@@ -362,10 +387,24 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(91)
-		 	try match(LittleDuckParser.Tokens.ID.rawValue)
 		 	setState(92)
-		 	try moreIds()
+		 	try {
+		 			let assignmentValue = try match(LittleDuckParser.Tokens.ID.rawValue)
+		 			_localctx.castdown(IdListContext.self)._ID = assignmentValue
+		 	     }()
+
+
+		 	          _localctx.castdown(IdListContext.self).names =  [(_localctx.castdown(IdListContext.self)._ID != nil ? _localctx.castdown(IdListContext.self)._ID!.getText()! : "")] // Initialize the list with the first ID
+		 	      
+		 	setState(94)
+		 	try {
+		 			let assignmentValue = try moreIds()
+		 			_localctx.castdown(IdListContext.self)._moreIds = assignmentValue
+		 	     }()
+
+
+		 	          _localctx.names.append(contentsOf: _localctx.castdown(IdListContext.self)._moreIds.names); // Add more IDs if present
+		 	      
 
 		}
 		catch ANTLRException.recognition(let re) {
@@ -378,6 +417,9 @@ open class LittleDuckParser: Parser {
 	}
 
 	public class MoreIdsContext: ParserRuleContext {
+		open var names: Array<String>!
+		open var _ID: Token!
+		open var _moreIds: MoreIdsContext!
 			open
 			func COMMA() -> TerminalNode? {
 				return getToken(LittleDuckParser.Tokens.COMMA.rawValue, 0)
@@ -416,22 +458,39 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(98)
+		 	setState(103)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .COMMA:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(94)
+		 		setState(97)
 		 		try match(LittleDuckParser.Tokens.COMMA.rawValue)
-		 		setState(95)
-		 		try match(LittleDuckParser.Tokens.ID.rawValue)
-		 		setState(96)
-		 		try moreIds()
+		 		setState(98)
+		 		try {
+		 				let assignmentValue = try match(LittleDuckParser.Tokens.ID.rawValue)
+		 				_localctx.castdown(MoreIdsContext.self)._ID = assignmentValue
+		 		     }()
+
+		 		setState(99)
+		 		try {
+		 				let assignmentValue = try moreIds()
+		 				_localctx.castdown(MoreIdsContext.self)._moreIds = assignmentValue
+		 		     }()
+
+
+		 		          // Add the current ID and recursively append the next IDs
+		 		          _localctx.castdown(MoreIdsContext.self).names =  [(_localctx.castdown(MoreIdsContext.self)._ID != nil ? _localctx.castdown(MoreIdsContext.self)._ID!.getText()! : "")]
+		 		          _localctx.names.append(contentsOf: _localctx.castdown(MoreIdsContext.self)._moreIds.names);
+		 		      
 
 		 		break
 
 		 	case .COLON:
 		 		try enterOuterAlt(_localctx, 2)
+
+		 		          // Initialize an empty list for the base case
+		 		          _localctx.castdown(MoreIdsContext.self).names =  []
+		 		      
 
 		 		break
 		 	default:
@@ -482,14 +541,14 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(104)
+		 	setState(109)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .VOID:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(100)
+		 		setState(105)
 		 		try function()
-		 		setState(101)
+		 		setState(106)
 		 		try functions()
 
 		 		break
@@ -579,25 +638,25 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(106)
-		 	try match(LittleDuckParser.Tokens.VOID.rawValue)
-		 	setState(107)
-		 	try match(LittleDuckParser.Tokens.ID.rawValue)
-		 	setState(108)
-		 	try match(LittleDuckParser.Tokens.LPAREN.rawValue)
-		 	setState(109)
-		 	try parameterList()
-		 	setState(110)
-		 	try match(LittleDuckParser.Tokens.RPAREN.rawValue)
 		 	setState(111)
-		 	try match(LittleDuckParser.Tokens.LBRACE.rawValue)
+		 	try match(LittleDuckParser.Tokens.VOID.rawValue)
 		 	setState(112)
-		 	try optionalVariables()
+		 	try match(LittleDuckParser.Tokens.ID.rawValue)
 		 	setState(113)
-		 	try body()
+		 	try match(LittleDuckParser.Tokens.LPAREN.rawValue)
 		 	setState(114)
-		 	try match(LittleDuckParser.Tokens.RBRACE.rawValue)
+		 	try parameterList()
 		 	setState(115)
+		 	try match(LittleDuckParser.Tokens.RPAREN.rawValue)
+		 	setState(116)
+		 	try match(LittleDuckParser.Tokens.LBRACE.rawValue)
+		 	setState(117)
+		 	try optionalVariables()
+		 	setState(118)
+		 	try body()
+		 	setState(119)
+		 	try match(LittleDuckParser.Tokens.RBRACE.rawValue)
+		 	setState(120)
 		 	try match(LittleDuckParser.Tokens.SEMICOLON.rawValue)
 
 		}
@@ -645,14 +704,14 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(121)
+		 	setState(126)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .ID:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(117)
+		 		setState(122)
 		 		try parameter()
-		 		setState(118)
+		 		setState(123)
 		 		try moreParameters()
 
 		 		break
@@ -714,11 +773,11 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(123)
+		 	setState(128)
 		 	try match(LittleDuckParser.Tokens.ID.rawValue)
-		 	setState(124)
+		 	setState(129)
 		 	try match(LittleDuckParser.Tokens.COLON.rawValue)
-		 	setState(125)
+		 	setState(130)
 		 	try type()
 
 		}
@@ -770,16 +829,16 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(132)
+		 	setState(137)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .COMMA:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(127)
+		 		setState(132)
 		 		try match(LittleDuckParser.Tokens.COMMA.rawValue)
-		 		setState(128)
+		 		setState(133)
 		 		try parameter()
-		 		setState(129)
+		 		setState(134)
 		 		try moreParameters()
 
 		 		break
@@ -838,7 +897,7 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(134)
+		 	setState(139)
 		 	_la = try _input.LA(1)
 		 	if (!(_la == LittleDuckParser.Tokens.INT_TYPE.rawValue || _la == LittleDuckParser.Tokens.FLOAT_TYPE.rawValue)) {
 		 	try _errHandler.recoverInline(self)
@@ -894,9 +953,9 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(136)
+		 	setState(141)
 		 	try term()
-		 	setState(137)
+		 	setState(142)
 		 	try expressionPrime()
 
 		}
@@ -954,13 +1013,13 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(145)
+		 	setState(150)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .PLUS:fallthrough
 		 	case .MINUS:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(139)
+		 		setState(144)
 		 		_localctx.castdown(ExpressionPrimeContext.self).`operator` = try _input.LT(1)
 		 		_la = try _input.LA(1)
 		 		if (!(_la == LittleDuckParser.Tokens.PLUS.rawValue || _la == LittleDuckParser.Tokens.MINUS.rawValue)) {
@@ -970,13 +1029,13 @@ open class LittleDuckParser: Parser {
 		 			_errHandler.reportMatch(self)
 		 			try consume()
 		 		}
-		 		setState(140)
+		 		setState(145)
 		 		try term()
 
 		 		          ParserHelper.shared.pushOperator((_localctx.castdown(ExpressionPrimeContext.self).operator != nil ? _localctx.castdown(ExpressionPrimeContext.self).operator!.getText()! : ""))
 		 		          ParserHelper.shared.popAndGenerateQuadruple()
 		 		      
-		 		setState(142)
+		 		setState(147)
 		 		try expressionPrime()
 
 		 		break
@@ -1043,30 +1102,49 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(153)
+		 	setState(158)
 		 	try _errHandler.sync(self)
 		 	switch(try getInterpreter().adaptivePredict(_input,7, _ctx)) {
 		 	case 1:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(147)
+		 		setState(152)
 		 		try expression()
 
 		 		break
 		 	case 2:
 		 		try enterOuterAlt(_localctx, 2)
-		 		setState(148)
+		 		setState(153)
 		 		try expression()
-		 		setState(149)
+		 		setState(154)
 		 		try {
 		 				let assignmentValue = try comparisonOperators()
 		 				_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators = assignmentValue
 		 		     }()
 
-		 		setState(150)
+		 		setState(155)
 		 		try expression()
 
-		 		          ParserHelper.shared.pushOperator((_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators != nil ? try _input.getText(_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators!.start,_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators!.stop) : ""))
-		 		          ParserHelper.shared.popAndGenerateQuadruple()
+
+		 		          guard let rightType = ParserHelper.shared.popType(),
+		 		                let leftType = ParserHelper.shared.popType() else {
+		 		              throw CompilerError.typeMismatch(expected: "boolean", found: "nil")
+		 		          }
+
+		 		          guard let resultType = SemanticCube.cube[leftType]?[rightType]?[(_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators != nil ? try _input.getText(_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators!.start,_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators!.stop) : "")],
+		 		                resultType == "boolean" else {
+		 		              throw CompilerError.typeMismatch(expected: "boolean", found: "\(leftType), \(rightType)")
+		 		          }
+
+		 		          ParserHelper.shared.pushType(resultType)
+
+		 		          guard let operand2 = ParserHelper.shared.popOperand(),
+		 		                let operand1 = ParserHelper.shared.popOperand() else {
+		 		              throw CompilerError.undefinedBehavior(message: "Missing operands for comparison")
+		 		          }
+
+		 		          let temp = ParserHelper.shared.generateTemp()
+		 		          QuadrupleGenerator.shared.addQuadruple(op: (_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators != nil ? try _input.getText(_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators!.start,_localctx.castdown(ComparisonExpressionContext.self)._comparisonOperators!.stop) : ""), operand1: operand1, operand2: operand2, result: temp)
+		 		          ParserHelper.shared.pushOperand(temp) // Push the result of comparison
 		 		      
 
 		 		break
@@ -1127,9 +1205,9 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(155)
+		 	setState(160)
 		 	_la = try _input.LA(1)
-		 	if (!(((Int64(_la) & ~0x3f) == 0 && ((Int64(1) << _la) & 503316480) != 0))) {
+		 	if (!(((Int64(_la) & ~0x3f) == 0 && ((Int64(1) << _la) & 1006632960) != 0))) {
 		 	try _errHandler.recoverInline(self)
 		 	}
 		 	else {
@@ -1183,9 +1261,9 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(157)
+		 	setState(162)
 		 	try factor()
-		 	setState(158)
+		 	setState(163)
 		 	try termPrime()
 
 		}
@@ -1243,13 +1321,13 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(166)
+		 	setState(171)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .MUL:fallthrough
 		 	case .DIV:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(160)
+		 		setState(165)
 		 		_localctx.castdown(TermPrimeContext.self).`operator` = try _input.LT(1)
 		 		_la = try _input.LA(1)
 		 		if (!(_la == LittleDuckParser.Tokens.MUL.rawValue || _la == LittleDuckParser.Tokens.DIV.rawValue)) {
@@ -1259,14 +1337,14 @@ open class LittleDuckParser: Parser {
 		 			_errHandler.reportMatch(self)
 		 			try consume()
 		 		}
-		 		setState(161)
+		 		setState(166)
 		 		try factor()
 
 		 		          // Access the text of the matched operator
 		 		          ParserHelper.shared.pushOperator((_localctx.castdown(TermPrimeContext.self).operator != nil ? _localctx.castdown(TermPrimeContext.self).operator!.getText()! : ""))
 		 		          ParserHelper.shared.popAndGenerateQuadruple()
 		 		      
-		 		setState(163)
+		 		setState(168)
 		 		try termPrime()
 
 		 		break
@@ -1336,19 +1414,19 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(173)
+		 	setState(178)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .LPAREN:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(168)
+		 		setState(173)
 		 		try parenthesizedExpression()
 
 		 		break
 
 		 	case .CONST:
 		 		try enterOuterAlt(_localctx, 2)
-		 		setState(169)
+		 		setState(174)
 		 		try {
 		 				let assignmentValue = try match(LittleDuckParser.Tokens.CONST.rawValue)
 		 				_localctx.castdown(FactorContext.self)._CONST = assignmentValue
@@ -1356,20 +1434,25 @@ open class LittleDuckParser: Parser {
 
 
 		 		          ParserHelper.shared.pushOperand((_localctx.castdown(FactorContext.self)._CONST != nil ? _localctx.castdown(FactorContext.self)._CONST!.getText()! : ""))
+		 		          ParserHelper.shared.pushType("int") // Example for INT
 		 		      
 
 		 		break
 
 		 	case .ID:
 		 		try enterOuterAlt(_localctx, 3)
-		 		setState(171)
+		 		setState(176)
 		 		try {
 		 				let assignmentValue = try match(LittleDuckParser.Tokens.ID.rawValue)
 		 				_localctx.castdown(FactorContext.self)._ID = assignmentValue
 		 		     }()
 
 
+		 		          guard let type = VariableTable.shared.getVariableType(name: (_localctx.castdown(FactorContext.self)._ID != nil ? _localctx.castdown(FactorContext.self)._ID!.getText()! : "")) else {
+		 		              throw CompilerError.undefinedBehavior(message: "Variable \((_localctx.castdown(FactorContext.self)._ID != nil ? _localctx.castdown(FactorContext.self)._ID!.getText()! : "")) not defined")
+		 		          }
 		 		          ParserHelper.shared.pushOperand((_localctx.castdown(FactorContext.self)._ID != nil ? _localctx.castdown(FactorContext.self)._ID!.getText()! : ""))
+		 		          ParserHelper.shared.pushType(type)
 		 		      
 
 		 		break
@@ -1426,12 +1509,15 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(175)
+		 	setState(180)
 		 	try match(LittleDuckParser.Tokens.LPAREN.rawValue)
-		 	setState(176)
+		 	setState(181)
 		 	try comparisonExpression()
-		 	setState(177)
+		 	setState(182)
 		 	try match(LittleDuckParser.Tokens.RPAREN.rawValue)
+
+		 	          // Parenthesis just evaluates and pushes result from comparisonExpression
+		 	      
 
 		}
 		catch ANTLRException.recognition(let re) {
@@ -1478,19 +1564,19 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(182)
+		 	setState(188)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .PLUS:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(179)
+		 		setState(185)
 		 		try match(LittleDuckParser.Tokens.PLUS.rawValue)
 
 		 		break
 
 		 	case .MINUS:
 		 		try enterOuterAlt(_localctx, 2)
-		 		setState(180)
+		 		setState(186)
 		 		try match(LittleDuckParser.Tokens.MINUS.rawValue)
 
 		 		break
@@ -1549,7 +1635,7 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(184)
+		 	setState(190)
 		 	_la = try _input.LA(1)
 		 	if (!(_la == LittleDuckParser.Tokens.CONST.rawValue || _la == LittleDuckParser.Tokens.ID.rawValue)) {
 		 	try _errHandler.recoverInline(self)
@@ -1616,36 +1702,36 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(191)
+		 	setState(197)
 		 	try _errHandler.sync(self)
 		 	switch(try getInterpreter().adaptivePredict(_input,11, _ctx)) {
 		 	case 1:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(186)
+		 		setState(192)
 		 		try assignment()
 
 		 		break
 		 	case 2:
 		 		try enterOuterAlt(_localctx, 2)
-		 		setState(187)
+		 		setState(193)
 		 		try conditional()
 
 		 		break
 		 	case 3:
 		 		try enterOuterAlt(_localctx, 3)
-		 		setState(188)
+		 		setState(194)
 		 		try loop()
 
 		 		break
 		 	case 4:
 		 		try enterOuterAlt(_localctx, 4)
-		 		setState(189)
+		 		setState(195)
 		 		try functionCall()
 
 		 		break
 		 	case 5:
 		 		try enterOuterAlt(_localctx, 5)
-		 		setState(190)
+		 		setState(196)
 		 		try print()
 
 		 		break
@@ -1706,29 +1792,43 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(193)
+		 	setState(199)
 		 	try {
 		 			let assignmentValue = try match(LittleDuckParser.Tokens.ID.rawValue)
 		 			_localctx.castdown(AssignmentContext.self)._ID = assignmentValue
 		 	     }()
 
-		 	setState(194)
+		 	setState(200)
 		 	try match(LittleDuckParser.Tokens.EQ.rawValue)
-		 	setState(195)
+		 	setState(201)
 		 	try comparisonExpression()
-		 	setState(196)
+		 	setState(202)
 		 	try match(LittleDuckParser.Tokens.SEMICOLON.rawValue)
 
-		 	          // Pop the result of the expression from the operand stack
-		 	          guard let result = ParserHelper.shared.popOperand() else {
+		 	          guard let variableType = VariableTable.shared.getVariableType(name: (_localctx.castdown(AssignmentContext.self)._ID != nil ? _localctx.castdown(AssignmentContext.self)._ID!.getText()! : "")) else {
+		 	              throw CompilerError.undefinedBehavior(message: "Variable \((_localctx.castdown(AssignmentContext.self)._ID != nil ? _localctx.castdown(AssignmentContext.self)._ID!.getText()! : "")) not declared.")
+		 	          }
+
+		 	          guard let assignedType = ParserHelper.shared.popType() else {
+		 	              throw CompilerError.undefinedBehavior(message: "Missing type for value assigned to \((_localctx.castdown(AssignmentContext.self)._ID != nil ? _localctx.castdown(AssignmentContext.self)._ID!.getText()! : "")).")
+		 	          }
+
+		 	          // Handle type promotion
+		 	          if assignedType != variableType {
+		 	                if assignedType == "int" && variableType == "float" {
+		 	                    // Allow implicit promotion without generating a cast quadruple
+		 	                    ParserHelper.shared.pushType("float")
+		 	                } else if assignedType != variableType {
+		 	                    throw CompilerError.typeMismatch(expected: variableType, found: assignedType)
+		 	                }
+		 	          }
+
+		 	          // Pop the final operand and generate assignment quadruple
+		 	          guard let value = ParserHelper.shared.popOperand() else {
 		 	              throw CompilerError.missingValueForAssignment(variable: (_localctx.castdown(AssignmentContext.self)._ID != nil ? _localctx.castdown(AssignmentContext.self)._ID!.getText()! : ""))
 		 	          }
 
-		 	          // Generate the quadruple for the assignment
-		 	          QuadrupleGenerator.shared.addQuadruple(op: "=", operand1: result, operand2: "", result: (_localctx.castdown(AssignmentContext.self)._ID != nil ? _localctx.castdown(AssignmentContext.self)._ID!.getText()! : ""))
-
-		 	          // Clear the stacks after assignment
-		 	          ParserHelper.shared.clearStacks()
+		 	          QuadrupleGenerator.shared.addQuadruple(op: "=", operand1: value, operand2: "", result: (_localctx.castdown(AssignmentContext.self)._ID != nil ? _localctx.castdown(AssignmentContext.self)._ID!.getText()! : ""))
 		 	      
 
 		}
@@ -1742,10 +1842,6 @@ open class LittleDuckParser: Parser {
 	}
 
 	public class ConditionalContext: ParserRuleContext {
-			open
-			func ID() -> TerminalNode? {
-				return getToken(LittleDuckParser.Tokens.ID.rawValue, 0)
-			}
 			open
 			func LPAREN() -> TerminalNode? {
 				return getToken(LittleDuckParser.Tokens.LPAREN.rawValue, 0)
@@ -1793,17 +1889,34 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(199)
-		 	try match(LittleDuckParser.Tokens.ID.rawValue)
-		 	setState(200)
+		 	setState(205)
+		 	try match(LittleDuckParser.Tokens.T__0.rawValue)
+		 	setState(206)
 		 	try match(LittleDuckParser.Tokens.LPAREN.rawValue)
-		 	setState(201)
+		 	setState(207)
 		 	try comparisonExpression()
-		 	setState(202)
+		 	setState(208)
 		 	try match(LittleDuckParser.Tokens.RPAREN.rawValue)
-		 	setState(203)
+
+
+		 	        guard let conditionOperand = ParserHelper.shared.popOperand() else {
+		 	            fatalError("Missing condition operand for IF statement")
+		 	        }
+
+		 	        // Generate GotoF immediately
+		 	        let jumpQuadIndex = QuadrupleGenerator.shared.addQuadruple(op: "GotoF", operand1: conditionOperand, operand2: "", result: "")
+		 	        ParserHelper.shared.pushJump(jumpQuadIndex) // Push index for backpatching
+		 	    
+		 	setState(210)
 		 	try body()
-		 	setState(204)
+
+		 	        // Backpatch GotoF to jump to the end of the body
+		 	        guard let jumpIndex = ParserHelper.shared.popJump() else {
+		 	            fatalError("No jump to backpatch for IF statement")
+		 	        }
+		 	        QuadrupleGenerator.shared.fillJumpTarget(jumpIndex, with: QuadrupleGenerator.shared.currentQuadrupleIndex)
+		 	    
+		 	setState(212)
 		 	try elseBody()
 
 		}
@@ -1851,17 +1964,29 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(209)
+		 	setState(219)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .ELSE:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(206)
+		 		setState(214)
 		 		try match(LittleDuckParser.Tokens.ELSE.rawValue)
-		 		setState(207)
+		 		setState(215)
 		 		try body()
 
+		 		        // Generate an unconditional Goto to skip the `else` body
+		 		        let elseJump = QuadrupleGenerator.shared.addUnconditionalJump()
+		 		        ParserHelper.shared.pushJump(elseJump)
+
+		 		        // Backpatch the previous GotoF to skip to this part
+		 		        guard let ifFalseJump = ParserHelper.shared.popJump() else {
+		 		            fatalError("No jump to backpatch for IF statement")
+		 		        }
+		 		        QuadrupleGenerator.shared.fillJumpTarget(ifFalseJump, with: QuadrupleGenerator.shared.currentQuadrupleIndex)
+		 		    
+
 		 		break
+		 	case .T__0:fallthrough
 		 	case .WHILE:fallthrough
 		 	case .PRINT:fallthrough
 		 	case .RBRACE:fallthrough
@@ -1938,19 +2063,19 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(211)
+		 	setState(221)
 		 	try match(LittleDuckParser.Tokens.WHILE.rawValue)
-		 	setState(212)
+		 	setState(222)
 		 	try match(LittleDuckParser.Tokens.LPAREN.rawValue)
-		 	setState(213)
+		 	setState(223)
 		 	try comparisonExpression()
-		 	setState(214)
+		 	setState(224)
 		 	try match(LittleDuckParser.Tokens.RPAREN.rawValue)
-		 	setState(215)
+		 	setState(225)
 		 	try match(LittleDuckParser.Tokens.DO.rawValue)
-		 	setState(216)
+		 	setState(226)
 		 	try body()
-		 	setState(217)
+		 	setState(227)
 		 	try match(LittleDuckParser.Tokens.SEMICOLON.rawValue)
 
 		}
@@ -2003,11 +2128,11 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(219)
+		 	setState(229)
 		 	try match(LittleDuckParser.Tokens.LBRACE.rawValue)
-		 	setState(220)
+		 	setState(230)
 		 	try statementList()
-		 	setState(221)
+		 	setState(231)
 		 	try match(LittleDuckParser.Tokens.RBRACE.rawValue)
 
 		}
@@ -2055,16 +2180,17 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(227)
+		 	setState(237)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
+		 	case .T__0:fallthrough
 		 	case .WHILE:fallthrough
 		 	case .PRINT:fallthrough
 		 	case .ID:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(223)
+		 		setState(233)
 		 		try statement()
-		 		setState(224)
+		 		setState(234)
 		 		try statementList()
 
 		 		break
@@ -2134,15 +2260,15 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(229)
+		 	setState(239)
 		 	try match(LittleDuckParser.Tokens.PRINT.rawValue)
-		 	setState(230)
+		 	setState(240)
 		 	try match(LittleDuckParser.Tokens.LPAREN.rawValue)
-		 	setState(231)
+		 	setState(241)
 		 	try printContent()
-		 	setState(232)
+		 	setState(242)
 		 	try match(LittleDuckParser.Tokens.RPAREN.rawValue)
-		 	setState(233)
+		 	setState(243)
 		 	try match(LittleDuckParser.Tokens.SEMICOLON.rawValue)
 
 		}
@@ -2194,25 +2320,25 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(240)
+		 	setState(250)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .CONST:fallthrough
 		 	case .LPAREN:fallthrough
 		 	case .ID:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(235)
+		 		setState(245)
 		 		try comparisonExpression()
-		 		setState(236)
+		 		setState(246)
 		 		try morePrintContent()
 
 		 		break
 
 		 	case .STRING_LITERAL:
 		 		try enterOuterAlt(_localctx, 2)
-		 		setState(238)
+		 		setState(248)
 		 		try match(LittleDuckParser.Tokens.STRING_LITERAL.rawValue)
-		 		setState(239)
+		 		setState(249)
 		 		try morePrintContent()
 
 		 		break
@@ -2264,14 +2390,14 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(245)
+		 	setState(255)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .COMMA:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(242)
+		 		setState(252)
 		 		try match(LittleDuckParser.Tokens.COMMA.rawValue)
-		 		setState(243)
+		 		setState(253)
 		 		try printContent()
 
 		 		break
@@ -2341,15 +2467,15 @@ open class LittleDuckParser: Parser {
 	    }
 		do {
 		 	try enterOuterAlt(_localctx, 1)
-		 	setState(247)
+		 	setState(257)
 		 	try match(LittleDuckParser.Tokens.ID.rawValue)
-		 	setState(248)
+		 	setState(258)
 		 	try match(LittleDuckParser.Tokens.LPAREN.rawValue)
-		 	setState(249)
+		 	setState(259)
 		 	try expressionList()
-		 	setState(250)
+		 	setState(260)
 		 	try match(LittleDuckParser.Tokens.RPAREN.rawValue)
-		 	setState(251)
+		 	setState(261)
 		 	try match(LittleDuckParser.Tokens.SEMICOLON.rawValue)
 
 		}
@@ -2397,16 +2523,16 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(257)
+		 	setState(267)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .CONST:fallthrough
 		 	case .LPAREN:fallthrough
 		 	case .ID:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(253)
+		 		setState(263)
 		 		try comparisonExpression()
-		 		setState(254)
+		 		setState(264)
 		 		try moreExpressions()
 
 		 		break
@@ -2467,16 +2593,16 @@ open class LittleDuckParser: Parser {
 	    		try! exitRule()
 	    }
 		do {
-		 	setState(264)
+		 	setState(274)
 		 	try _errHandler.sync(self)
 		 	switch (LittleDuckParser.Tokens(rawValue: try _input.LA(1))!) {
 		 	case .COMMA:
 		 		try enterOuterAlt(_localctx, 1)
-		 		setState(259)
+		 		setState(269)
 		 		try match(LittleDuckParser.Tokens.COMMA.rawValue)
-		 		setState(260)
+		 		setState(270)
 		 		try comparisonExpression()
-		 		setState(261)
+		 		setState(271)
 		 		try moreExpressions()
 
 		 		break
@@ -2499,86 +2625,89 @@ open class LittleDuckParser: Parser {
 	}
 
 	static let _serializedATN:[Int] = [
-		4,1,33,267,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
+		4,1,34,277,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
 		7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,14,
 		2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,21,
 		2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,28,
 		2,29,7,29,2,30,7,30,2,31,7,31,2,32,7,32,2,33,7,33,1,0,1,0,1,0,1,0,1,0,
-		1,0,1,0,1,0,1,0,1,1,1,1,1,1,3,1,81,8,1,1,2,1,2,1,2,1,2,1,2,1,2,1,2,3,2,
-		90,8,2,1,3,1,3,1,3,1,4,1,4,1,4,1,4,3,4,99,8,4,1,5,1,5,1,5,1,5,3,5,105,
-		8,5,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,7,1,7,1,7,1,7,3,7,122,
-		8,7,1,8,1,8,1,8,1,8,1,9,1,9,1,9,1,9,1,9,3,9,133,8,9,1,10,1,10,1,11,1,11,
-		1,11,1,12,1,12,1,12,1,12,1,12,1,12,3,12,146,8,12,1,13,1,13,1,13,1,13,1,
-		13,1,13,3,13,154,8,13,1,14,1,14,1,15,1,15,1,15,1,16,1,16,1,16,1,16,1,16,
-		1,16,3,16,167,8,16,1,17,1,17,1,17,1,17,1,17,3,17,174,8,17,1,18,1,18,1,
-		18,1,18,1,19,1,19,1,19,3,19,183,8,19,1,20,1,20,1,21,1,21,1,21,1,21,1,21,
-		3,21,192,8,21,1,22,1,22,1,22,1,22,1,22,1,22,1,23,1,23,1,23,1,23,1,23,1,
-		23,1,23,1,24,1,24,1,24,3,24,210,8,24,1,25,1,25,1,25,1,25,1,25,1,25,1,25,
-		1,25,1,26,1,26,1,26,1,26,1,27,1,27,1,27,1,27,3,27,228,8,27,1,28,1,28,1,
-		28,1,28,1,28,1,28,1,29,1,29,1,29,1,29,1,29,3,29,241,8,29,1,30,1,30,1,30,
-		3,30,246,8,30,1,31,1,31,1,31,1,31,1,31,1,31,1,32,1,32,1,32,1,32,3,32,258,
-		8,32,1,33,1,33,1,33,1,33,1,33,3,33,265,8,33,1,33,0,0,34,0,2,4,6,8,10,12,
-		14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,
-		62,64,66,0,5,1,0,11,12,1,0,21,22,1,0,25,28,1,0,23,24,2,0,1,1,29,29,255,
-		0,68,1,0,0,0,2,80,1,0,0,0,4,89,1,0,0,0,6,91,1,0,0,0,8,98,1,0,0,0,10,104,
-		1,0,0,0,12,106,1,0,0,0,14,121,1,0,0,0,16,123,1,0,0,0,18,132,1,0,0,0,20,
-		134,1,0,0,0,22,136,1,0,0,0,24,145,1,0,0,0,26,153,1,0,0,0,28,155,1,0,0,
-		0,30,157,1,0,0,0,32,166,1,0,0,0,34,173,1,0,0,0,36,175,1,0,0,0,38,182,1,
-		0,0,0,40,184,1,0,0,0,42,191,1,0,0,0,44,193,1,0,0,0,46,199,1,0,0,0,48,209,
-		1,0,0,0,50,211,1,0,0,0,52,219,1,0,0,0,54,227,1,0,0,0,56,229,1,0,0,0,58,
-		240,1,0,0,0,60,245,1,0,0,0,62,247,1,0,0,0,64,257,1,0,0,0,66,264,1,0,0,
-		0,68,69,5,2,0,0,69,70,5,29,0,0,70,71,5,17,0,0,71,72,3,2,1,0,72,73,3,10,
-		5,0,73,74,5,3,0,0,74,75,3,52,26,0,75,76,5,4,0,0,76,1,1,0,0,0,77,78,5,5,
-		0,0,78,81,3,4,2,0,79,81,1,0,0,0,80,77,1,0,0,0,80,79,1,0,0,0,81,3,1,0,0,
-		0,82,83,3,6,3,0,83,84,5,18,0,0,84,85,3,20,10,0,85,86,5,17,0,0,86,87,3,
-		4,2,0,87,90,1,0,0,0,88,90,1,0,0,0,89,82,1,0,0,0,89,88,1,0,0,0,90,5,1,0,
-		0,0,91,92,5,29,0,0,92,93,3,8,4,0,93,7,1,0,0,0,94,95,5,19,0,0,95,96,5,29,
-		0,0,96,99,3,8,4,0,97,99,1,0,0,0,98,94,1,0,0,0,98,97,1,0,0,0,99,9,1,0,0,
-		0,100,101,3,12,6,0,101,102,3,10,5,0,102,105,1,0,0,0,103,105,1,0,0,0,104,
-		100,1,0,0,0,104,103,1,0,0,0,105,11,1,0,0,0,106,107,5,6,0,0,107,108,5,29,
-		0,0,108,109,5,13,0,0,109,110,3,14,7,0,110,111,5,14,0,0,111,112,5,15,0,
-		0,112,113,3,2,1,0,113,114,3,52,26,0,114,115,5,16,0,0,115,116,5,17,0,0,
-		116,13,1,0,0,0,117,118,3,16,8,0,118,119,3,18,9,0,119,122,1,0,0,0,120,122,
-		1,0,0,0,121,117,1,0,0,0,121,120,1,0,0,0,122,15,1,0,0,0,123,124,5,29,0,
-		0,124,125,5,18,0,0,125,126,3,20,10,0,126,17,1,0,0,0,127,128,5,19,0,0,128,
-		129,3,16,8,0,129,130,3,18,9,0,130,133,1,0,0,0,131,133,1,0,0,0,132,127,
-		1,0,0,0,132,131,1,0,0,0,133,19,1,0,0,0,134,135,7,0,0,0,135,21,1,0,0,0,
-		136,137,3,30,15,0,137,138,3,24,12,0,138,23,1,0,0,0,139,140,7,1,0,0,140,
-		141,3,30,15,0,141,142,6,12,-1,0,142,143,3,24,12,0,143,146,1,0,0,0,144,
-		146,1,0,0,0,145,139,1,0,0,0,145,144,1,0,0,0,146,25,1,0,0,0,147,154,3,22,
-		11,0,148,149,3,22,11,0,149,150,3,28,14,0,150,151,3,22,11,0,151,152,6,13,
-		-1,0,152,154,1,0,0,0,153,147,1,0,0,0,153,148,1,0,0,0,154,27,1,0,0,0,155,
-		156,7,2,0,0,156,29,1,0,0,0,157,158,3,34,17,0,158,159,3,32,16,0,159,31,
-		1,0,0,0,160,161,7,3,0,0,161,162,3,34,17,0,162,163,6,16,-1,0,163,164,3,
-		32,16,0,164,167,1,0,0,0,165,167,1,0,0,0,166,160,1,0,0,0,166,165,1,0,0,
-		0,167,33,1,0,0,0,168,174,3,36,18,0,169,170,5,1,0,0,170,174,6,17,-1,0,171,
-		172,5,29,0,0,172,174,6,17,-1,0,173,168,1,0,0,0,173,169,1,0,0,0,173,171,
-		1,0,0,0,174,35,1,0,0,0,175,176,5,13,0,0,176,177,3,26,13,0,177,178,5,14,
-		0,0,178,37,1,0,0,0,179,183,5,21,0,0,180,183,5,22,0,0,181,183,1,0,0,0,182,
-		179,1,0,0,0,182,180,1,0,0,0,182,181,1,0,0,0,183,39,1,0,0,0,184,185,7,4,
-		0,0,185,41,1,0,0,0,186,192,3,44,22,0,187,192,3,46,23,0,188,192,3,50,25,
-		0,189,192,3,62,31,0,190,192,3,56,28,0,191,186,1,0,0,0,191,187,1,0,0,0,
-		191,188,1,0,0,0,191,189,1,0,0,0,191,190,1,0,0,0,192,43,1,0,0,0,193,194,
-		5,29,0,0,194,195,5,20,0,0,195,196,3,26,13,0,196,197,5,17,0,0,197,198,6,
-		22,-1,0,198,45,1,0,0,0,199,200,5,29,0,0,200,201,5,13,0,0,201,202,3,26,
-		13,0,202,203,5,14,0,0,203,204,3,52,26,0,204,205,3,48,24,0,205,47,1,0,0,
-		0,206,207,5,10,0,0,207,210,3,52,26,0,208,210,1,0,0,0,209,206,1,0,0,0,209,
-		208,1,0,0,0,210,49,1,0,0,0,211,212,5,7,0,0,212,213,5,13,0,0,213,214,3,
-		26,13,0,214,215,5,14,0,0,215,216,5,8,0,0,216,217,3,52,26,0,217,218,5,17,
-		0,0,218,51,1,0,0,0,219,220,5,15,0,0,220,221,3,54,27,0,221,222,5,16,0,0,
-		222,53,1,0,0,0,223,224,3,42,21,0,224,225,3,54,27,0,225,228,1,0,0,0,226,
-		228,1,0,0,0,227,223,1,0,0,0,227,226,1,0,0,0,228,55,1,0,0,0,229,230,5,9,
-		0,0,230,231,5,13,0,0,231,232,3,58,29,0,232,233,5,14,0,0,233,234,5,17,0,
-		0,234,57,1,0,0,0,235,236,3,26,13,0,236,237,3,60,30,0,237,241,1,0,0,0,238,
-		239,5,32,0,0,239,241,3,60,30,0,240,235,1,0,0,0,240,238,1,0,0,0,241,59,
-		1,0,0,0,242,243,5,19,0,0,243,246,3,58,29,0,244,246,1,0,0,0,245,242,1,0,
-		0,0,245,244,1,0,0,0,246,61,1,0,0,0,247,248,5,29,0,0,248,249,5,13,0,0,249,
-		250,3,64,32,0,250,251,5,14,0,0,251,252,5,17,0,0,252,63,1,0,0,0,253,254,
-		3,26,13,0,254,255,3,66,33,0,255,258,1,0,0,0,256,258,1,0,0,0,257,253,1,
-		0,0,0,257,256,1,0,0,0,258,65,1,0,0,0,259,260,5,19,0,0,260,261,3,26,13,
-		0,261,262,3,66,33,0,262,265,1,0,0,0,263,265,1,0,0,0,264,259,1,0,0,0,264,
-		263,1,0,0,0,265,67,1,0,0,0,18,80,89,98,104,121,132,145,153,166,173,182,
-		191,209,227,240,245,257,264
+		1,0,1,0,1,0,1,0,1,1,1,1,1,1,3,1,81,8,1,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,
+		3,2,91,8,2,1,3,1,3,1,3,1,3,1,3,1,4,1,4,1,4,1,4,1,4,1,4,3,4,104,8,4,1,5,
+		1,5,1,5,1,5,3,5,110,8,5,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,
+		7,1,7,1,7,1,7,3,7,127,8,7,1,8,1,8,1,8,1,8,1,9,1,9,1,9,1,9,1,9,3,9,138,
+		8,9,1,10,1,10,1,11,1,11,1,11,1,12,1,12,1,12,1,12,1,12,1,12,3,12,151,8,
+		12,1,13,1,13,1,13,1,13,1,13,1,13,3,13,159,8,13,1,14,1,14,1,15,1,15,1,15,
+		1,16,1,16,1,16,1,16,1,16,1,16,3,16,172,8,16,1,17,1,17,1,17,1,17,1,17,3,
+		17,179,8,17,1,18,1,18,1,18,1,18,1,18,1,19,1,19,1,19,3,19,189,8,19,1,20,
+		1,20,1,21,1,21,1,21,1,21,1,21,3,21,198,8,21,1,22,1,22,1,22,1,22,1,22,1,
+		22,1,23,1,23,1,23,1,23,1,23,1,23,1,23,1,23,1,23,1,24,1,24,1,24,1,24,1,
+		24,3,24,220,8,24,1,25,1,25,1,25,1,25,1,25,1,25,1,25,1,25,1,26,1,26,1,26,
+		1,26,1,27,1,27,1,27,1,27,3,27,238,8,27,1,28,1,28,1,28,1,28,1,28,1,28,1,
+		29,1,29,1,29,1,29,1,29,3,29,251,8,29,1,30,1,30,1,30,3,30,256,8,30,1,31,
+		1,31,1,31,1,31,1,31,1,31,1,32,1,32,1,32,1,32,3,32,268,8,32,1,33,1,33,1,
+		33,1,33,1,33,3,33,275,8,33,1,33,0,0,34,0,2,4,6,8,10,12,14,16,18,20,22,
+		24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,0,5,
+		1,0,12,13,1,0,22,23,1,0,26,29,1,0,24,25,2,0,2,2,30,30,265,0,68,1,0,0,0,
+		2,80,1,0,0,0,4,90,1,0,0,0,6,92,1,0,0,0,8,103,1,0,0,0,10,109,1,0,0,0,12,
+		111,1,0,0,0,14,126,1,0,0,0,16,128,1,0,0,0,18,137,1,0,0,0,20,139,1,0,0,
+		0,22,141,1,0,0,0,24,150,1,0,0,0,26,158,1,0,0,0,28,160,1,0,0,0,30,162,1,
+		0,0,0,32,171,1,0,0,0,34,178,1,0,0,0,36,180,1,0,0,0,38,188,1,0,0,0,40,190,
+		1,0,0,0,42,197,1,0,0,0,44,199,1,0,0,0,46,205,1,0,0,0,48,219,1,0,0,0,50,
+		221,1,0,0,0,52,229,1,0,0,0,54,237,1,0,0,0,56,239,1,0,0,0,58,250,1,0,0,
+		0,60,255,1,0,0,0,62,257,1,0,0,0,64,267,1,0,0,0,66,274,1,0,0,0,68,69,5,
+		3,0,0,69,70,5,30,0,0,70,71,5,18,0,0,71,72,3,2,1,0,72,73,3,10,5,0,73,74,
+		5,4,0,0,74,75,3,52,26,0,75,76,5,5,0,0,76,1,1,0,0,0,77,78,5,6,0,0,78,81,
+		3,4,2,0,79,81,1,0,0,0,80,77,1,0,0,0,80,79,1,0,0,0,81,3,1,0,0,0,82,83,3,
+		6,3,0,83,84,5,19,0,0,84,85,3,20,10,0,85,86,5,18,0,0,86,87,6,2,-1,0,87,
+		88,3,4,2,0,88,91,1,0,0,0,89,91,1,0,0,0,90,82,1,0,0,0,90,89,1,0,0,0,91,
+		5,1,0,0,0,92,93,5,30,0,0,93,94,6,3,-1,0,94,95,3,8,4,0,95,96,6,3,-1,0,96,
+		7,1,0,0,0,97,98,5,20,0,0,98,99,5,30,0,0,99,100,3,8,4,0,100,101,6,4,-1,
+		0,101,104,1,0,0,0,102,104,6,4,-1,0,103,97,1,0,0,0,103,102,1,0,0,0,104,
+		9,1,0,0,0,105,106,3,12,6,0,106,107,3,10,5,0,107,110,1,0,0,0,108,110,1,
+		0,0,0,109,105,1,0,0,0,109,108,1,0,0,0,110,11,1,0,0,0,111,112,5,7,0,0,112,
+		113,5,30,0,0,113,114,5,14,0,0,114,115,3,14,7,0,115,116,5,15,0,0,116,117,
+		5,16,0,0,117,118,3,2,1,0,118,119,3,52,26,0,119,120,5,17,0,0,120,121,5,
+		18,0,0,121,13,1,0,0,0,122,123,3,16,8,0,123,124,3,18,9,0,124,127,1,0,0,
+		0,125,127,1,0,0,0,126,122,1,0,0,0,126,125,1,0,0,0,127,15,1,0,0,0,128,129,
+		5,30,0,0,129,130,5,19,0,0,130,131,3,20,10,0,131,17,1,0,0,0,132,133,5,20,
+		0,0,133,134,3,16,8,0,134,135,3,18,9,0,135,138,1,0,0,0,136,138,1,0,0,0,
+		137,132,1,0,0,0,137,136,1,0,0,0,138,19,1,0,0,0,139,140,7,0,0,0,140,21,
+		1,0,0,0,141,142,3,30,15,0,142,143,3,24,12,0,143,23,1,0,0,0,144,145,7,1,
+		0,0,145,146,3,30,15,0,146,147,6,12,-1,0,147,148,3,24,12,0,148,151,1,0,
+		0,0,149,151,1,0,0,0,150,144,1,0,0,0,150,149,1,0,0,0,151,25,1,0,0,0,152,
+		159,3,22,11,0,153,154,3,22,11,0,154,155,3,28,14,0,155,156,3,22,11,0,156,
+		157,6,13,-1,0,157,159,1,0,0,0,158,152,1,0,0,0,158,153,1,0,0,0,159,27,1,
+		0,0,0,160,161,7,2,0,0,161,29,1,0,0,0,162,163,3,34,17,0,163,164,3,32,16,
+		0,164,31,1,0,0,0,165,166,7,3,0,0,166,167,3,34,17,0,167,168,6,16,-1,0,168,
+		169,3,32,16,0,169,172,1,0,0,0,170,172,1,0,0,0,171,165,1,0,0,0,171,170,
+		1,0,0,0,172,33,1,0,0,0,173,179,3,36,18,0,174,175,5,2,0,0,175,179,6,17,
+		-1,0,176,177,5,30,0,0,177,179,6,17,-1,0,178,173,1,0,0,0,178,174,1,0,0,
+		0,178,176,1,0,0,0,179,35,1,0,0,0,180,181,5,14,0,0,181,182,3,26,13,0,182,
+		183,5,15,0,0,183,184,6,18,-1,0,184,37,1,0,0,0,185,189,5,22,0,0,186,189,
+		5,23,0,0,187,189,1,0,0,0,188,185,1,0,0,0,188,186,1,0,0,0,188,187,1,0,0,
+		0,189,39,1,0,0,0,190,191,7,4,0,0,191,41,1,0,0,0,192,198,3,44,22,0,193,
+		198,3,46,23,0,194,198,3,50,25,0,195,198,3,62,31,0,196,198,3,56,28,0,197,
+		192,1,0,0,0,197,193,1,0,0,0,197,194,1,0,0,0,197,195,1,0,0,0,197,196,1,
+		0,0,0,198,43,1,0,0,0,199,200,5,30,0,0,200,201,5,21,0,0,201,202,3,26,13,
+		0,202,203,5,18,0,0,203,204,6,22,-1,0,204,45,1,0,0,0,205,206,5,1,0,0,206,
+		207,5,14,0,0,207,208,3,26,13,0,208,209,5,15,0,0,209,210,6,23,-1,0,210,
+		211,3,52,26,0,211,212,6,23,-1,0,212,213,3,48,24,0,213,47,1,0,0,0,214,215,
+		5,11,0,0,215,216,3,52,26,0,216,217,6,24,-1,0,217,220,1,0,0,0,218,220,1,
+		0,0,0,219,214,1,0,0,0,219,218,1,0,0,0,220,49,1,0,0,0,221,222,5,8,0,0,222,
+		223,5,14,0,0,223,224,3,26,13,0,224,225,5,15,0,0,225,226,5,9,0,0,226,227,
+		3,52,26,0,227,228,5,18,0,0,228,51,1,0,0,0,229,230,5,16,0,0,230,231,3,54,
+		27,0,231,232,5,17,0,0,232,53,1,0,0,0,233,234,3,42,21,0,234,235,3,54,27,
+		0,235,238,1,0,0,0,236,238,1,0,0,0,237,233,1,0,0,0,237,236,1,0,0,0,238,
+		55,1,0,0,0,239,240,5,10,0,0,240,241,5,14,0,0,241,242,3,58,29,0,242,243,
+		5,15,0,0,243,244,5,18,0,0,244,57,1,0,0,0,245,246,3,26,13,0,246,247,3,60,
+		30,0,247,251,1,0,0,0,248,249,5,33,0,0,249,251,3,60,30,0,250,245,1,0,0,
+		0,250,248,1,0,0,0,251,59,1,0,0,0,252,253,5,20,0,0,253,256,3,58,29,0,254,
+		256,1,0,0,0,255,252,1,0,0,0,255,254,1,0,0,0,256,61,1,0,0,0,257,258,5,30,
+		0,0,258,259,5,14,0,0,259,260,3,64,32,0,260,261,5,15,0,0,261,262,5,18,0,
+		0,262,63,1,0,0,0,263,264,3,26,13,0,264,265,3,66,33,0,265,268,1,0,0,0,266,
+		268,1,0,0,0,267,263,1,0,0,0,267,266,1,0,0,0,268,65,1,0,0,0,269,270,5,20,
+		0,0,270,271,3,26,13,0,271,272,3,66,33,0,272,275,1,0,0,0,273,275,1,0,0,
+		0,274,269,1,0,0,0,274,273,1,0,0,0,275,67,1,0,0,0,18,80,90,103,109,126,
+		137,150,158,171,178,188,197,219,237,250,255,267,274
 	]
 
 	public

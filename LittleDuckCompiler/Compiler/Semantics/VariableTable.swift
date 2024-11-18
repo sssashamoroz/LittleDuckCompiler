@@ -43,6 +43,7 @@
 // VariableInfo
 /// Represents individual variable details, like type and optionally a memory address.
 struct VariableInfo {
+    
     var type: String
     var memoryAddress: Int? // Optional for memory management, if needed
     
@@ -60,15 +61,19 @@ struct VariableInfo {
 // VariableTable
 /// Manages a collection of variables for a specific scope (e.g., global or local to a function).
 class VariableTable {
+    
+    static let shared = VariableTable() // Singleton instance
     private var variables: [String: VariableInfo] = [:]
     
     /// Adds a variable to the table if it doesn't already exist.
     /// - Returns: `true` if the variable was added successfully, `false` if it already exists.
-    func addVariable(name: String, type: String, memoryAddress: Int? = nil) -> Bool {
+    func addVariable(name: String, type: String) -> Bool {
         if variables[name] == nil {
-            variables[name] = VariableInfo(type: type, memoryAddress: memoryAddress)
-            return true
+            print("Adding variable: \(name) of type \(type)")
+            variables[name] = VariableInfo(type: type)
+            return true // Successfully added
         }
+        print("Variable \(name) already declared.")
         return false // Variable already exists
     }
     
@@ -118,5 +123,21 @@ class VariableTable {
         }
         
         return ids
+    }
+    
+    func reset() {
+        variables.removeAll()
+        print("VariableTable cleared.")
+    }
+}
+
+extension VariableTable {
+    var description: String {
+        guard !variables.isEmpty else { return "Variable Table is empty." }
+        var output = "Variable Table:\n"
+        for (name, info) in variables {
+            output += "\(name): \(info.type)\n"
+        }
+        return output
     }
 }

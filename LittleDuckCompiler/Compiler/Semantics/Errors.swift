@@ -9,4 +9,5 @@ enum CompilerError: Error {
     case missingValueForAssignment(variable: String)
     case stackUnderflow
     case undefinedBehavior(message: String)
+    case typeMismatch(expected: String, found: String)
 }

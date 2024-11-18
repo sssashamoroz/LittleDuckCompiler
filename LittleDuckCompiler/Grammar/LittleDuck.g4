@@ -10,17 +10,46 @@ optionalVariables
     ;
 
 variableDeclaration
-    : idList ':' type ';' variableDeclaration
+    : idList ':' type ';'
+      {
+          guard let variableNames = $idList.names else {
+              throw CompilerError.undefinedBehavior(message: "Missing variable names.")
+          }
+
+          // Add each variable in the list to the VariableTable
+          for name in variableNames {
+              if !VariableTable.shared.addVariable(name: name, type: $type.text) {
+                  throw CompilerError.undefinedBehavior(message: "Variable \(name) already declared.")
+              }
+          }
+      }
+      variableDeclaration
     | // epsilon (empty rule)
     ;
 
-idList
-    : ID moreIds
+idList returns [Array<String> names]
+    : ID
+      {
+          $names = [$ID.text]; // Initialize the list with the first ID
+      }
+      moreIds
+      {
+          $names.append(contentsOf: $moreIds.names); // Add more IDs if present
+      }
     ;
 
-moreIds
+moreIds returns [Array<String> names]
     : ',' ID moreIds
+      {
+          // Add the current ID and recursively append the next IDs
+          $names = [$ID.text];
+          $names.append(contentsOf: $moreIds.names);
+      }
     | // epsilon (empty rule)
+      {
+          // Initialize an empty list for the base case
+          $names = [];
+      }
     ;
 
 functions
@@ -69,8 +98,27 @@ comparisonExpression
     : expression
     | expression comparisonOperators expression
       {
-          ParserHelper.shared.pushOperator($comparisonOperators.text)
-          ParserHelper.shared.popAndGenerateQuadruple()
+
+          guard let rightType = ParserHelper.shared.popType(),
+                let leftType = ParserHelper.shared.popType() else {
+              throw CompilerError.typeMismatch(expected: "boolean", found: "nil")
+          }
+
+          guard let resultType = SemanticCube.cube[leftType]?[rightType]?[$comparisonOperators.text],
+                resultType == "boolean" else {
+              throw CompilerError.typeMismatch(expected: "boolean", found: "\(leftType), \(rightType)")
+          }
+
+          ParserHelper.shared.pushType(resultType)
+
+          guard let operand2 = ParserHelper.shared.popOperand(),
+                let operand1 = ParserHelper.shared.popOperand() else {
+              throw CompilerError.undefinedBehavior(message: "Missing operands for comparison")
+          }
+
+          let temp = ParserHelper.shared.generateTemp()
+          QuadrupleGenerator.shared.addQuadruple(op: $comparisonOperators.text, operand1: operand1, operand2: operand2, result: temp)
+          ParserHelper.shared.pushOperand(temp) // Push the result of comparison
       }
     ;
 
@@ -101,15 +149,23 @@ factor
     | CONST
       {
           ParserHelper.shared.pushOperand($CONST.text)
+          ParserHelper.shared.pushType("int") // Example for INT
       }
     | ID
       {
+          guard let type = VariableTable.shared.getVariableType(name: $ID.text) else {
+              throw CompilerError.undefinedBehavior(message: "Variable \($ID.text) not defined")
+          }
           ParserHelper.shared.pushOperand($ID.text)
+          ParserHelper.shared.pushType(type)
       }
     ;
 
 parenthesizedExpression
     : '(' comparisonExpression ')'
+      {
+          // Parenthesis just evaluates and pushes result from comparisonExpression
+      }
     ;
 
 optionalSign
@@ -134,27 +190,68 @@ statement
 assignment
     : ID '=' comparisonExpression ';'
       {
-          // Pop the result of the expression from the operand stack
-          guard let result = ParserHelper.shared.popOperand() else {
+          guard let variableType = VariableTable.shared.getVariableType(name: $ID.text) else {
+              throw CompilerError.undefinedBehavior(message: "Variable \($ID.text) not declared.")
+          }
+
+          guard let assignedType = ParserHelper.shared.popType() else {
+              throw CompilerError.undefinedBehavior(message: "Missing type for value assigned to \($ID.text).")
+          }
+
+          // Handle type promotion
+          if assignedType != variableType {
+                if assignedType == "int" && variableType == "float" {
+                    // Allow implicit promotion without generating a cast quadruple
+                    ParserHelper.shared.pushType("float")
+                } else if assignedType != variableType {
+                    throw CompilerError.typeMismatch(expected: variableType, found: assignedType)
+                }
+          }
+
+          // Pop the final operand and generate assignment quadruple
+          guard let value = ParserHelper.shared.popOperand() else {
               throw CompilerError.missingValueForAssignment(variable: $ID.text)
           }
 
-          // Generate the quadruple for the assignment
-          QuadrupleGenerator.shared.addQuadruple(op: "=", operand1: result, operand2: "", result: $ID.text)
-
-          // Clear the stacks after assignment
-          ParserHelper.shared.clearStacks()
+          QuadrupleGenerator.shared.addQuadruple(op: "=", operand1: value, operand2: "", result: $ID.text)
       }
     ;
 
 conditional
-    : ID '(' comparisonExpression ')' body elseBody
-    ;
+    : 'if' '(' comparisonExpression ')' {
+
+        guard let conditionOperand = ParserHelper.shared.popOperand() else {
+            fatalError("Missing condition operand for IF statement")
+        }
+
+        // Generate GotoF immediately
+        let jumpQuadIndex = QuadrupleGenerator.shared.addQuadruple(op: "GotoF", operand1: conditionOperand, operand2: "", result: "")
+        ParserHelper.shared.pushJump(jumpQuadIndex) // Push index for backpatching
+    }
+    body {
+        // Backpatch GotoF to jump to the end of the body
+        guard let jumpIndex = ParserHelper.shared.popJump() else {
+            fatalError("No jump to backpatch for IF statement")
+        }
+        QuadrupleGenerator.shared.fillJumpTarget(jumpIndex, with: QuadrupleGenerator.shared.currentQuadrupleIndex)
+    }
+    elseBody
+;
 
 elseBody
-    : 'else' body
-    | // epsilon (empty rule)
-    ;
+    : 'else' body {
+        // Generate an unconditional Goto to skip the `else` body
+        let elseJump = QuadrupleGenerator.shared.addUnconditionalJump()
+        ParserHelper.shared.pushJump(elseJump)
+
+        // Backpatch the previous GotoF to skip to this part
+        guard let ifFalseJump = ParserHelper.shared.popJump() else {
+            fatalError("No jump to backpatch for IF statement")
+        }
+        QuadrupleGenerator.shared.fillJumpTarget(ifFalseJump, with: QuadrupleGenerator.shared.currentQuadrupleIndex)
+    }
+    | // epsilon
+;
 
 loop
     : 'while' '(' comparisonExpression ')' 'do' body ';'
