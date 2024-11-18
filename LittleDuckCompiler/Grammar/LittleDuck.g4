@@ -56,13 +56,22 @@ expression
     ;
 
 expressionPrime
-    : ('+' | '-') term expressionPrime
+    : operator=('+' | '-') term
+      {
+          ParserHelper.shared.pushOperator($operator.text)
+          ParserHelper.shared.popAndGenerateQuadruple()
+      }
+      expressionPrime
     | // epsilon (empty rule)
     ;
 
 comparisonExpression
     : expression
     | expression comparisonOperators expression
+      {
+          ParserHelper.shared.pushOperator($comparisonOperators.text)
+          ParserHelper.shared.popAndGenerateQuadruple()
+      }
     ;
 
 comparisonOperators
@@ -77,13 +86,26 @@ term
     ;
 
 termPrime
-    : ('*' | '/') factor termPrime
+    : operator=('*' | '/') factor
+      {
+          // Access the text of the matched operator
+          ParserHelper.shared.pushOperator($operator.text)
+          ParserHelper.shared.popAndGenerateQuadruple()
+      }
+      termPrime
     | // epsilon (empty rule)
     ;
 
 factor
     : parenthesizedExpression
-    | optionalSign primitive
+    | CONST
+      {
+          ParserHelper.shared.pushOperand($CONST.text)
+      }
+    | ID
+      {
+          ParserHelper.shared.pushOperand($ID.text)
+      }
     ;
 
 parenthesizedExpression
@@ -111,6 +133,18 @@ statement
 
 assignment
     : ID '=' comparisonExpression ';'
+      {
+          // Pop the result of the expression from the operand stack
+          guard let result = ParserHelper.shared.popOperand() else {
+              throw CompilerError.missingValueForAssignment(variable: $ID.text)
+          }
+
+          // Generate the quadruple for the assignment
+          QuadrupleGenerator.shared.addQuadruple(op: "=", operand1: result, operand2: "", result: $ID.text)
+
+          // Clear the stacks after assignment
+          ParserHelper.shared.clearStacks()
+      }
     ;
 
 conditional

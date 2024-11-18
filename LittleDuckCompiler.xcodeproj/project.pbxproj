@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D749732F2CD2E987005C9267 /* Antlr4 in Frameworks */ = {isa = PBXBuildFile; productRef = D749732E2CD2E987005C9267 /* Antlr4 */; };
+		D74973DA2CD3131E005C9267 /* Antlr4 in Frameworks */ = {isa = PBXBuildFile; productRef = D74973D92CD3131E005C9267 /* Antlr4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,7 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D749732F2CD2E987005C9267 /* Antlr4 in Frameworks */,
+				D74973DA2CD3131E005C9267 /* Antlr4 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,6 +83,7 @@
 				D71D75992CD2E6AA00A52EE1 /* LittleDuckCompiler */,
 				D71D75AA2CD2E6AC00A52EE1 /* LittleDuckCompilerTests */,
 				D71D75B42CD2E6AC00A52EE1 /* LittleDuckCompilerUITests */,
+				D74973D82CD3131E005C9267 /* Frameworks */,
 				D71D75982CD2E6AA00A52EE1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -95,6 +96,13 @@
 				D71D75B12CD2E6AC00A52EE1 /* LittleDuckCompilerUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D74973D82CD3131E005C9267 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -111,13 +119,14 @@
 			buildRules = (
 			);
 			dependencies = (
+				D74973DC2CD31323005C9267 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				D71D75992CD2E6AA00A52EE1 /* LittleDuckCompiler */,
 			);
 			name = LittleDuckCompiler;
 			packageProductDependencies = (
-				D749732E2CD2E987005C9267 /* Antlr4 */,
+				D74973D92CD3131E005C9267 /* Antlr4 */,
 			);
 			productName = LittleDuckCompiler;
 			productReference = D71D75972CD2E6AA00A52EE1 /* LittleDuckCompiler.app */;
@@ -202,7 +211,7 @@
 			mainGroup = D71D758E2CD2E6AA00A52EE1;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				D749732D2CD2E987005C9267 /* XCRemoteSwiftPackageReference "Antlr4-tmp-1730326961" */,
+				D74973D72CD312C9005C9267 /* XCRemoteSwiftPackageReference "antlr4" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D71D75982CD2E6AA00A52EE1 /* Products */;
@@ -274,6 +283,10 @@
 			isa = PBXTargetDependency;
 			target = D71D75962CD2E6AA00A52EE1 /* LittleDuckCompiler */;
 			targetProxy = D71D75B22CD2E6AC00A52EE1 /* PBXContainerItemProxy */;
+		};
+		D74973DC2CD31323005C9267 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = D74973DB2CD31323005C9267 /* Antlr4 */;
 		};
 /* End PBXTargetDependency section */
 
@@ -408,6 +421,7 @@
 				DEVELOPMENT_TEAM = U9JXWD2ZKD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = LittleDuckCompiler;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -437,6 +451,7 @@
 				DEVELOPMENT_TEAM = U9JXWD2ZKD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = LittleDuckCompiler;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -569,20 +584,25 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		D749732D2CD2E987005C9267 /* XCRemoteSwiftPackageReference "Antlr4-tmp-1730326961" */ = {
+		D74973D72CD312C9005C9267 /* XCRemoteSwiftPackageReference "antlr4" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "/private/tmp/Antlr4-tmp-1730326961";
+			repositoryURL = "https://github.com/antlr/antlr4.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.0.0;
+				minimumVersion = 4.13.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		D749732E2CD2E987005C9267 /* Antlr4 */ = {
+		D74973D92CD3131E005C9267 /* Antlr4 */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D749732D2CD2E987005C9267 /* XCRemoteSwiftPackageReference "Antlr4-tmp-1730326961" */;
+			package = D74973D72CD312C9005C9267 /* XCRemoteSwiftPackageReference "antlr4" */;
+			productName = Antlr4;
+		};
+		D74973DB2CD31323005C9267 /* Antlr4 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D74973D72CD312C9005C9267 /* XCRemoteSwiftPackageReference "antlr4" */;
 			productName = Antlr4;
 		};
 /* End XCSwiftPackageProductDependency section */
