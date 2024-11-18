@@ -10,14 +10,20 @@ import Antlr4
 
 struct ContentView: View {
     @State private var sourceCode: String = """
-    program test;
+    program prueba;
+    vars 
+        x, y : int;
+        z : float;
     begin
     {
-        a = (20 + 10) * (20 - 10) / 2;
+        x = 10;
+        y = 5;
+        z = (x + y) * (x - y) / 2;
     }
     end
     """
-    @State private var parseTreeOutput: String = ""
+    @State private var parseTreeOutput: String = "" // For displaying the Parse Tree
+    @State private var quadrupleOutput: String = "" // For displaying the Quadruples
     @State private var rootNode: PTNode? = nil
 
     var body: some View {
@@ -33,13 +39,19 @@ struct ContentView: View {
 
             Button(action: {
                 do {
-                    // Parse the source code
-                    let (_, _, quadruples) = try parseCode(sourceCode)
-
-                    // Display the quadruples only
+                    // Clear previous outputs
                     self.parseTreeOutput = ""
+                    self.quadrupleOutput = ""
+
+                    // Parse the source code
+                    let (parseTree, _, quadruples) = try parseCode(sourceCode)
+
+                    // Update the Parse Tree output
+                    self.parseTreeOutput = parseTree
+
+                    // Update the Quadruples output
                     for quad in quadruples {
-                        self.parseTreeOutput += "(\(quad.op), \(quad.operand1), \(quad.operand2), \(quad.result))\n"
+                        self.quadrupleOutput += "(\(quad.op), \(quad.operand1), \(quad.operand2), \(quad.result))\n"
                     }
                 } catch CompilerError.missingValueForAssignment(let variable) {
                     self.parseTreeOutput = "Error: Missing value for assignment to '\(variable)'."
@@ -61,7 +73,7 @@ struct ContentView: View {
             
 
             ScrollView {
-                Text(parseTreeOutput)
+                Text(quadrupleOutput)
                     .padding()
                     .border(Color.gray, width: 1)
                     .frame(maxWidth: .infinity)
