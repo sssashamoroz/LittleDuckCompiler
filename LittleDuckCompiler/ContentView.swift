@@ -11,7 +11,7 @@ import Antlr4
 
 struct ContentView: View {
     @State private var sourceCode: String = """
-    program prueba;
+    program simpleTest;
     vars 
         x, y : int;
         z : float;
@@ -19,14 +19,18 @@ struct ContentView: View {
     {
         x = 10;
         y = 5;
-        z = (x + y) * (x - y) / 2;
-        if (z > 20.0) 
+        if (x > y) 
         {
-            z = 300;
+            z = x + y;
+        }
+        else 
+        {
+            z = x - y;
         }
     }
     end
     """
+    
     @State private var parseTreeOutput: String = "" // For displaying the Parse Tree
     @State private var quadrupleOutput: String = "" // For displaying the Quadruples
     @State private var variableTableOutput: String = "" // For displaying the Variable Table
@@ -157,3 +161,22 @@ func parseCode(_ input: String) -> (String, [Quadruple]) {
         return ("Error parsing input: \(error)", [])
     }
 }
+
+
+var test1 = """
+    program prueba;
+    vars 
+        x, y : int;
+        z : float;
+    begin
+    {
+        x = 10;
+        y = 5;
+        z = (x + y) * (x - y) / 2;
+        if (z > 20.0) 
+        {
+            z = 300;
+        }
+    }
+    end
+"""
