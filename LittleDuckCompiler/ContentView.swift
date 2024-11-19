@@ -11,9 +11,20 @@ import Antlr4
 
 struct ContentView: View {
     @State private var sourceCode: String = """
-    program testWhile;
+    program testFunctions;
     vars
         x : int;
+    
+    void function(x: int)
+    {   
+        vars y: int;    
+        {
+         y = 10;
+         x = x - y;
+        }
+    };
+    
+    
     begin
     {
         x = 0;
@@ -136,6 +147,7 @@ func parseCode(_ input: String) -> (String, [Quadruple]) {
     do {
         VariableTable.shared.reset()
         ParserHelper.shared.reset()
+        FunctionDirectory.shared.reset()
         QuadrupleGenerator.shared.reset()
 
         let inputStream = ANTLRInputStream(input)

@@ -12,14 +12,19 @@ optionalVariables
 variableDeclaration
     : idList ':' type ';'
       {
+      
+          // CHeck if there is no Name defined for the Variable
           guard let variableNames = $idList.names else {
               throw CompilerError.undefinedBehavior(message: "Missing variable names.")
           }
+          
+          // Get Current Scope
+          let currentScope = ParserHelper.shared.getCurrentScope()
 
           // Add each variable in the list to the VariableTable
           for name in variableNames {
-              if !VariableTable.shared.addVariable(name: name, type: $type.text) {
-                  throw CompilerError.undefinedBehavior(message: "Variable \(name) already declared.")
+              if !VariableTable.shared.addVariable(name: name, type: $type.text, scope: currentScope) {
+                  throw CompilerError.undefinedBehavior(message: "Variable \(name) already declared in scope \(currentScope).")
               }
           }
       }
@@ -30,10 +35,12 @@ variableDeclaration
 idList returns [Array<String> names]
     : ID
       {
+          Swift.print("Debug: Parsing idList, found ID: \($ID.text)")
           $names = [$ID.text]; // Initialize the list with the first ID
       }
       moreIds
       {
+          Swift.print("Debug: Parsing moreIds in idList")
           $names.append(contentsOf: $moreIds.names); // Add more IDs if present
       }
     ;
@@ -58,7 +65,56 @@ functions
     ;
 
 function
-    : 'void' ID '(' parameterList ')' '{' optionalVariables body '}' ';'
+    : 'void' ID
+    {
+        
+          // Temporarily store the function name and set scope
+          var functionName = $ID.text
+          ParserHelper.shared.setCurrentScope(functionName)
+    
+    }
+    '(' parameterList ')' '{'
+    {
+          // After parsing parameters, retrieve them from ParameterTable
+          functionName = ParserHelper.shared.getCurrentScope()
+          let parameterTypes = ParameterTable.shared.getParametersForFunction(functionName).map { $0.type }
+
+          // Add function to FunctionDirectory with collected parameter types
+          if !FunctionDirectory.shared.addFunction(
+                name: functionName,
+                type: "void",
+                startQuadruple: QuadrupleGenerator.shared.currentQuadrupleIndex
+          ) {
+              throw CompilerError.undefinedBehavior(message: "Function \(functionName) already defined.")
+          }
+
+          // Update parameter count and types
+          FunctionDirectory.shared.updateParameterCount(name: functionName, count: parameterTypes.count)
+          Swift.print("Added function: \(functionName) with parameter types: \(parameterTypes)")
+    }
+    optionalVariables
+    {
+          // Update local variable count after parsing local variables
+          let localVarCount = VariableTable.shared.getVariablesInScope(functionName).count
+          FunctionDirectory.shared.updateLocalVarCount(name: functionName, count: localVarCount)
+
+          // Update starting quadruple
+          FunctionDirectory.shared.updateStartQuadruple(name: functionName, startQuadruple: QuadrupleGenerator.shared.currentQuadrupleIndex)
+
+    }
+    body
+    {
+          // Generate the ENDFunc quadruple immediately after the body
+          QuadrupleGenerator.shared.addQuadruple(op: "ENDFunc", operand1: "_", operand2: "_", result: "_")
+          
+          // Reset variable table and scope
+          VariableTable.shared.resetScope(scope: ParserHelper.shared.getCurrentScope())
+          ParserHelper.shared.resetScope()
+
+          Swift.print("ENDFunc generated for function: \(ParserHelper.shared.getCurrentScope())")
+    }
+    
+    '}' ';'
     ;
 
 parameterList
@@ -68,6 +124,15 @@ parameterList
 
 parameter
     : ID ':' type
+      {
+          let paramName = $ID.text
+          let paramType = $type.text
+
+          // Add parameter to the ParameterTable for the function signature
+          ParameterTable.shared.addParameter(forFunction: ParserHelper.shared.getCurrentScope(), parameterName: paramName, parameterType: paramType)
+
+          print("Added parameter \(paramName) of type \(paramType) to function \(ParserHelper.shared.getCurrentScope())")
+      }
     ;
 
 moreParameters
@@ -154,6 +219,7 @@ factor
     | ID
       {
           guard let type = VariableTable.shared.getVariableType(name: $ID.text) else {
+              print("Variable \(String(describing: $ID.text)) not found in current or global scope.")
               throw CompilerError.undefinedBehavior(message: "Variable \($ID.text) not defined")
           }
           ParserHelper.shared.pushOperand($ID.text)

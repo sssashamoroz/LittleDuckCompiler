@@ -54,59 +54,121 @@
 // FunctionInfo
 /// Represents a single function's metadata, including parameters, return type, and local variables.
 struct FunctionInfo {
+    var name: String
+    var type: String
+    var paramCount: Int
+    var localVarCount: Int
+    var tempVarCount: Int
+    var startQuadruple: Int
     var parameterTypes: [String]
-    var returnType: String
-    var variableTable: VariableTable // Each function has its own variable table for local variables
-    
-    init(parameterTypes: [String], returnType: String) {
-        self.parameterTypes = parameterTypes
-        self.returnType = returnType
-        self.variableTable = VariableTable() // Initialize an empty variable table for local variables
-    }
-    
-    /// Checks if the provided parameter types match the function's parameter types.
-    func matchesParameterTypes(_ types: [String]) -> Bool {
-        return parameterTypes == types
-    }
-    
-    /// Validates if the return type of a function matches the expected type.
-    func validateReturnType(_ expectedType: String) -> Bool {
-        return returnType == expectedType
-    }
 }
 
-// FunctionDirectory
-/// Manages a collection of functions, allowing for the addition, retrieval, and validation of function metadata.
 class FunctionDirectory {
-    private var functions: [String: FunctionInfo] = [:]
+    static let shared = FunctionDirectory() // Singleton instance
     
-    /// Adds a function to the directory if it doesn't already exist.
-    /// - Returns: `true` if the function was added successfully, `false` if it already exists.
-    func addFunction(name: String, parameterTypes: [String], returnType: String) -> Bool {
+    private var functions: [String: FunctionInfo] = [:] // Stores functions by name
+    
+    private init() {}
+
+    /// Adds a function to the directory if it doesn't exist
+    func addFunction(name: String, type: String, startQuadruple: Int) -> Bool {
         if functions[name] == nil {
-            functions[name] = FunctionInfo(parameterTypes: parameterTypes, returnType: returnType)
+            let parameterTypes = ParameterTable.shared.getParametersForFunction(name).map { $0.type }
+            functions[name] = FunctionInfo(
+                name: name,
+                type: type,
+                paramCount: parameterTypes.count,
+                localVarCount: 0,
+                tempVarCount: 0,
+                startQuadruple: startQuadruple,
+                parameterTypes: parameterTypes
+            )
+            print("Added function: \(name) with parameter types: \(parameterTypes)")
             return true
         }
-        return false // Function already exists
+        print("Function \(name) already declared.")
+        return false
     }
-    
-    /// Retrieves the `FunctionInfo` for a given function name, if it exists.
+
+    /// Updates the parameter count for a given function
+    func updateParameterCount(name: String, count: Int) {
+        guard var function = functions[name] else {
+            fatalError("Function \(name) not found in directory.")
+        }
+        function.paramCount = count
+        functions[name] = function // Save the updated function
+        print("Updated parameter count for function \(name) to \(count)")
+    }
+
+    /// Updates the starting quadruple index for a given function
+    func updateStartQuadruple(name: String, startQuadruple: Int) {
+        guard var function = functions[name] else {
+            fatalError("Function \(name) not found in directory.")
+        }
+        function.startQuadruple = startQuadruple
+        functions[name] = function // Save the updated function
+        print("Updated start quadruple for function \(name) to \(startQuadruple)")
+    }
+
+    /// Updates the local variable count for a given function
+    func updateLocalVarCount(name: String, count: Int) {
+        guard var function = functions[name] else {
+            fatalError("Function \(name) not found in directory.")
+        }
+        function.localVarCount = count
+        functions[name] = function // Save the updated function
+        print("Updated local variable count for function \(name) to \(count)")
+    }
+
+    /// Retrieves information for a specific function
     func getFunctionInfo(name: String) -> FunctionInfo? {
         return functions[name]
     }
-    
-    /// Checks if a function with the given name exists in the directory.
-    func functionExists(name: String) -> Bool {
-        return functions[name] != nil
+
+    /// Resets the directory (useful between compilation runs)
+    func reset() {
+        functions.removeAll()
+        print("FunctionDirectory cleared.")
     }
+}
+
+/// Stores parameters for each function to construct function signatures
+class ParameterTable {
+    static let shared = ParameterTable() // Singleton instance
     
-    /// Validates if the parameter types for a function call match the expected types.
-    func matchesParameterTypes(name: String, parameterTypes: [String]) -> Bool {
-        return functions[name]?.matchesParameterTypes(parameterTypes) ?? false
+    private var parameters: [String: [ParameterInfo]] = [:] // Dictionary of function names to their parameter info
+
+    private init() {}
+
+    /// Adds a parameter to a function's parameter list
+    /// - Parameters:
+    ///   - functionName: The name of the function
+    ///   - parameterName: The name of the parameter
+    ///   - parameterType: The type of the parameter
+    func addParameter(forFunction functionName: String, parameterName: String, parameterType: String) {
+        if parameters[functionName] == nil {
+            parameters[functionName] = [] // Initialize parameter list if it doesn't exist
+        }
+        parameters[functionName]?.append(ParameterInfo(name: parameterName, type: parameterType))
+        print("Added parameter \(parameterName) of type \(parameterType) to function \(functionName)")
     }
-    
-    /// Checks if the return type of a function matches the expected type.
-    func validateReturnType(name: String, expectedType: String) -> Bool {
-        return functions[name]?.validateReturnType(expectedType) ?? false
+
+    /// Retrieves the parameter list for a given function
+    /// - Parameter functionName: The name of the function
+    /// - Returns: An array of `ParameterInfo` for the function, or an empty array if none exist
+    func getParametersForFunction(_ functionName: String) -> [ParameterInfo] {
+        return parameters[functionName] ?? []
     }
+
+    /// Clears all stored parameter information (useful between compiler runs)
+    func reset() {
+        parameters.removeAll()
+        print("ParameterTable cleared.")
+    }
+}
+
+/// Represents a single parameter's metadata
+struct ParameterInfo {
+    let name: String
+    let type: String
 }

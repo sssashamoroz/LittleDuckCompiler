@@ -43,16 +43,16 @@
 // VariableInfo
 /// Represents individual variable details, like type and optionally a memory address.
 struct VariableInfo {
-    
     var type: String
-    var memoryAddress: Int? // Optional for memory management, if needed
-    
-    init(type: String, memoryAddress: Int? = nil) {
+    var scope: String
+    var memoryAddress: Int? // Optional for memory management
+
+    init(type: String, scope: String, memoryAddress: Int? = nil) {
         self.type = type
+        self.scope = scope
         self.memoryAddress = memoryAddress
     }
-    
-    /// Checks if the variable's type matches an expected type.
+
     func matchesType(_ expectedType: String) -> Bool {
         return type == expectedType
     }
@@ -67,24 +67,39 @@ class VariableTable {
     
     /// Adds a variable to the table if it doesn't already exist.
     /// - Returns: `true` if the variable was added successfully, `false` if it already exists.
-    func addVariable(name: String, type: String) -> Bool {
+    func addVariable(name: String, type: String, scope: String) -> Bool {
         if variables[name] == nil {
-            print("Adding variable: \(name) of type \(type)")
-            variables[name] = VariableInfo(type: type)
-            return true // Successfully added
+            print("Adding variable: \(name) of type \(type) in scope \(scope)")
+            variables[name] = VariableInfo(type: type, scope: scope)
+            
+            print("Raw Variables Dictionary: \(variables)")
+            return true
         }
         print("Variable \(name) already declared.")
-        return false // Variable already exists
+        return false
     }
     
     /// Retrieves the type of a variable if it exists.
     func getVariableType(name: String) -> String? {
-        return variables[name]?.type
+        // Check the current scope first
+        if let type = variables[name]?.type {
+            return type
+        }
+        // Fallback to global scope
+        for (key, value) in variables where value.scope == "global" && key == name {
+            return value.type
+        }
+        // Variable not found
+        return nil
     }
     
     /// Checks if a variable exists in the table.
     func variableExists(name: String) -> Bool {
         return variables[name] != nil
+    }
+    
+    func getVariableScope(name: String) -> String? {
+        return variables[name]?.scope
     }
     
     /// Validates if a variable's type matches the expected type.
@@ -125,6 +140,20 @@ class VariableTable {
         return ids
     }
     
+    // SCOPE
+    
+    /// Clears variables belonging to a specific scope
+    func resetScope(_ scope: String) {
+        variables = variables.filter { $0.value.scope != scope }
+        print("Variables in scope '\(scope)' have been cleared.")
+    }
+    
+    /// Retrieves all variables in a specific scope
+    func getVariablesInScope(_ scope: String) -> [String: VariableInfo] {
+        return variables.filter { $0.value.scope == scope }
+    }
+    
+    
     func reset() {
         variables.removeAll()
         print("VariableTable cleared.")
@@ -136,7 +165,7 @@ extension VariableTable {
         guard !variables.isEmpty else { return "Variable Table is empty." }
         var output = "Variable Table:\n"
         for (name, info) in variables {
-            output += "\(name): \(info.type)\n"
+            output += "\(name): Type: \(info.type), Scope: \(info.scope)\n"
         }
         return output
     }

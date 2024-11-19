@@ -18,6 +18,8 @@ class ParserHelper {
     
     private(set) var typeStack: [String] = [] // For type checking
     private(set) var jumpStack: [Int] = [] // To manage jump targets
+    
+    private var currentScope: String = "global"
 
     private init() {}
 
@@ -153,5 +155,19 @@ class ParserHelper {
     func resetTypeStack() {
         print("Resetting Type Stack: \(typeStack)")
         typeStack.removeAll()
+    }
+    
+    
+    func setCurrentScope(_ scope: String) {
+        currentScope = scope
+        print("Current scope set to: \(scope)")
+    }
+
+    func getCurrentScope() -> String {
+        return currentScope
+    }
+
+    func resetScope() {
+        setCurrentScope("global") // Reset to global scope
     }
 }
