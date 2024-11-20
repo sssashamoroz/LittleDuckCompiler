@@ -7,9 +7,19 @@
 
 import SwiftUI
 import Antlr4
+import CodeEditorView
+import LanguageSupport
 
 
 struct ContentView: View {
+    
+    @State private var text:     String                    = "My awesome code..."
+    @State private var position: CodeEditor.Position       = CodeEditor.Position()
+    @State private var messages: Set<TextLocated<Message>> = Set()
+
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
+    
+    
     @State private var sourceCode: String = """
     program testFunctions;
     vars
@@ -35,38 +45,54 @@ struct ContentView: View {
     }
     end
     """
-        
+    
     @State private var parseTreeOutput: String = "" // For displaying the Parse Tree
     @State private var quadrupleOutput: String = "" // For displaying the Quadruples
-    @State private var variableTableOutput: String = "" // For displaying the Variable Table
-
+    @State private var variableTableOutput: String = "" // For displaying the Variable
+    
+    
     var body: some View {
-        GeometryReader { geometry in
-            HStack(spacing: 20) {
-                // Source Code Editor
-                VStack {
-                    Text("Source Code")
-                        .font(.headline)
-                        .padding(.bottom, 8)
+    
+        
+        VStack{
+            
+            ZStack{
+                
+                CodeEditor(text: $sourceCode, position: $position, messages: $messages, language: .none)
+                      .environment(\.codeEditorTheme,
+                                   colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
+                      .border(Color.gray, width: 1)
+                
+                HStack{
                     
-                    TextEditor(text: $sourceCode)
-                        .border(Color.gray, width: 1)
-                        .frame(height: geometry.size.height * 0.6)
-                    
-                    Button(action: {
-                        // Parse the source code
-                        handleParsing()
-                    }) {
-                        Text("Parse Code")
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
+                    Spacer()
+                    VStack{
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            // Parse the source code
+                            handleParsing()
+                        }) {
+                            Text("Parse Code")
+                                .frame(width: 130, height: 50)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                        .padding(.top, 8)
                     }
-                    .padding(.top, 8)
                 }
-                .frame(width: geometry.size.width * 0.3)
 
+                
+            }
+            
+
+
+            
+            HStack(alignment: .top, spacing: 20) {
+            
+                
                 // Outputs: Quadruples & Variable Table
                 VStack(spacing: 20) {
                     // Quadruples Section
@@ -79,11 +105,10 @@ struct ContentView: View {
                             Text(quadrupleOutput)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding()
-                                .border(Color.gray, width: 1)
                         }
+                        .border(Color.gray, width: 1)
                     }
-                    .frame(height: geometry.size.height * 0.45)
-
+                    
                     // Variable Table Section
                     VStack(alignment: .leading) {
                         Text("Variable Table")
@@ -94,16 +119,26 @@ struct ContentView: View {
                             Text(variableTableOutput)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding()
-                                .border(Color.gray, width: 1)
                         }
+                        .border(Color.gray, width: 1)
+                        
                     }
                 }
-                .frame(width: geometry.size.width * 0.35)
+                
+                
             }
-            .padding()
+            
         }
-    }
+        .padding()
 
+    }
+    
+    /// Generates line numbers based on the number of lines in the source code
+    private func lineNumbers() -> [Int] {
+        let lineCount = sourceCode.components(separatedBy: "\n").count
+        return Array(1...lineCount)
+    }
+    
     /// Handle parsing the source code, updating all relevant outputs
     private func handleParsing() {
         do {
@@ -111,21 +146,21 @@ struct ContentView: View {
             self.parseTreeOutput = ""
             self.quadrupleOutput = ""
             self.variableTableOutput = ""
-
+            
             // Parse the source code
             let (parseTree, quadruples) = try parseCode(sourceCode)
-
+            
             // Update the parse tree
             self.parseTreeOutput = parseTree
-
+            
             // Update the quadruples output
             quadruples.forEach { quad in
                 self.quadrupleOutput += "(\(quad.op), \(quad.operand1), \(quad.operand2), \(quad.result))\n"
             }
-
+            
             // Update the variable table output
             self.variableTableOutput = VariableTable.shared.description
-
+            
         } catch CompilerError.missingValueForAssignment(let variable) {
             self.quadrupleOutput = "Error: Missing value for assignment to '\(variable)'."
         } catch CompilerError.stackUnderflow {
@@ -145,11 +180,13 @@ struct ContentView: View {
 // Updated parseCode function to return both the parse tree and variable table
 func parseCode(_ input: String) -> (String, [Quadruple]) {
     do {
-        VariableTable.shared.reset()
+        
         ParserHelper.shared.reset()
+        VariableTable.shared.reset()
         FunctionDirectory.shared.reset()
+        ParameterTable.shared.reset()
         QuadrupleGenerator.shared.reset()
-
+        
         let inputStream = ANTLRInputStream(input)
         let lexer = LittleDuckLexer(inputStream)
         let tokenStream = CommonTokenStream(lexer)
@@ -159,52 +196,11 @@ func parseCode(_ input: String) -> (String, [Quadruple]) {
         // Retrieve quadruples from QuadrupleGenerator
         let quadruples = QuadrupleGenerator.shared.getQuadruples()
         print("Quadruples Retrieved from Generator: \(quadruples)")
-
+        
         // Root PTNode for graphical parse tree view
-
+        
         return (parseTree.toStringTree(parser), quadruples)
     } catch {
         return ("Error parsing input: \(error)", [])
     }
 }
-
-
-var testConditionals = """
-    program prueba;
-    vars 
-        x, y : int;
-        z : float;
-    begin
-    {
-        x = 10;
-        if (z > 20.0) 
-        {   
-            if ( x == 10)
-            {
-                z = 300;
-            }
-        }
-        else 
-        {
-            z = 10;
-        }
-        y = 5;
-        z = (x + y) * (x - y) / 2;
-    }
-    end
-"""
-
-var testLoops = """
-program testWhile;
-vars
-    x : int;
-begin
-{
-    x = 0;
-    while (x < 5) do
-    {
-        x = x + 1;
-    };
-}
-end
-"""

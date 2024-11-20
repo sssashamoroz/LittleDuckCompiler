@@ -64,8 +64,8 @@ struct FunctionInfo {
 }
 
 class FunctionDirectory {
-    static let shared = FunctionDirectory() // Singleton instance
     
+    static let shared = FunctionDirectory() // Singleton instance
     private var functions: [String: FunctionInfo] = [:] // Stores functions by name
     
     private init() {}
@@ -124,7 +124,15 @@ class FunctionDirectory {
     func getFunctionInfo(name: String) -> FunctionInfo? {
         return functions[name]
     }
-
+    
+    func getFunction(name: String) -> FunctionInfo? {
+        return functions[name]
+    }
+    
+    func getFunctionStart(name: String) -> Int? {
+        return functions[name]?.startQuadruple
+    }
+    
     /// Resets the directory (useful between compilation runs)
     func reset() {
         functions.removeAll()
@@ -134,8 +142,8 @@ class FunctionDirectory {
 
 /// Stores parameters for each function to construct function signatures
 class ParameterTable {
-    static let shared = ParameterTable() // Singleton instance
     
+    static let shared = ParameterTable() // Singleton instance
     private var parameters: [String: [ParameterInfo]] = [:] // Dictionary of function names to their parameter info
 
     private init() {}

@@ -373,11 +373,61 @@ morePrintContent
     ;
 
 functionCall
-    : ID '(' expressionList ')' ';'
+    : ID
+      {
+          // Verify that the function exists in the FunctionDirectory
+          var functionName = $ID.text
+          guard let functionInfo = FunctionDirectory.shared.getFunction(name: functionName) else {
+              throw CompilerError.undefinedBehavior(message: "Function \(functionName) is not declared.")
+          }
+
+          // Generate ERA quadruple for the function's activation record
+          QuadrupleGenerator.shared.addQuadruple(op: "ERA", operand1: functionName, operand2: "_", result: "_")
+
+          // Start parameter processing
+          ParserHelper.shared.initializeParameterProcessing(forFunction: functionName)
+      }
+      '(' expressionList ')'
+      {
+          // Verify the parameter count matches
+          guard ParserHelper.shared.verifyParameters(forFunction: $ID.text) else {
+              throw CompilerError.typeMismatch(
+                  expected: "parameters for \($ID.text)",
+                  found: "mismatched number or types of arguments"
+              )
+          }
+
+          // Generate GOSUB quadruple to jump to the function's starting address
+          functionName = $ID.text
+          guard let functionStartQuadruple = FunctionDirectory.shared.getFunctionStart(name: functionName) else {
+              throw CompilerError.undefinedBehavior(message: "Function \(functionName) is missing a start address.")
+          }
+          QuadrupleGenerator.shared.addQuadruple(op: "GOSUB", operand1: functionName, operand2: "_", result: "\(functionStartQuadruple)")
+      }
+      ';'
     ;
 
 expressionList
     : comparisonExpression moreExpressions
+      {
+          // Pop the argument and its type
+          guard let argument = ParserHelper.shared.popOperand(),
+                let argumentType = ParserHelper.shared.popType() else {
+              throw CompilerError.undefinedBehavior(message: "Missing argument for function call.")
+          }
+
+          // Validate against the current parameter
+          guard ParserHelper.shared.validateParameter(argument: argument, type: argumentType) else {
+              throw CompilerError.typeMismatch(
+                  expected: "parameter of type \(ParserHelper.shared.getExpectedParameterType())",
+                  found: argumentType
+              )
+          }
+
+          // Generate PARAM quadruple for the current parameter
+          let paramIndex = ParserHelper.shared.getCurrentParameterIndex()
+          QuadrupleGenerator.shared.addQuadruple(op: "PARAM", operand1: argument, operand2: "_", result: "param\(paramIndex)")
+      }
     | // epsilon (empty rule)
     ;
 

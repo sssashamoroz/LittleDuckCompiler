@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		D74973DA2CD3131E005C9267 /* Antlr4 in Frameworks */ = {isa = PBXBuildFile; productRef = D74973D92CD3131E005C9267 /* Antlr4 */; };
+		D7F8C41B2CEE58B7004BC331 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = D7F8C41A2CEE58B7004BC331 /* CodeEditorView */; };
+		D7F8C41D2CEE58B7004BC331 /* LanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = D7F8C41C2CEE58B7004BC331 /* LanguageSupport */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +59,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				D74973DA2CD3131E005C9267 /* Antlr4 in Frameworks */,
+				D7F8C41D2CEE58B7004BC331 /* LanguageSupport in Frameworks */,
+				D7F8C41B2CEE58B7004BC331 /* CodeEditorView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,6 +131,8 @@
 			name = LittleDuckCompiler;
 			packageProductDependencies = (
 				D74973D92CD3131E005C9267 /* Antlr4 */,
+				D7F8C41A2CEE58B7004BC331 /* CodeEditorView */,
+				D7F8C41C2CEE58B7004BC331 /* LanguageSupport */,
 			);
 			productName = LittleDuckCompiler;
 			productReference = D71D75972CD2E6AA00A52EE1 /* LittleDuckCompiler.app */;
@@ -212,6 +218,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				D74973D72CD312C9005C9267 /* XCRemoteSwiftPackageReference "antlr4" */,
+				D7F8C4192CEE5858004BC331 /* XCRemoteSwiftPackageReference "CodeEditorView" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D71D75982CD2E6AA00A52EE1 /* Products */;
@@ -592,6 +599,14 @@
 				minimumVersion = 4.13.2;
 			};
 		};
+		D7F8C4192CEE5858004BC331 /* XCRemoteSwiftPackageReference "CodeEditorView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mchakravarty/CodeEditorView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.14.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -604,6 +619,14 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D74973D72CD312C9005C9267 /* XCRemoteSwiftPackageReference "antlr4" */;
 			productName = Antlr4;
+		};
+		D7F8C41A2CEE58B7004BC331 /* CodeEditorView */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CodeEditorView;
+		};
+		D7F8C41C2CEE58B7004BC331 /* LanguageSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LanguageSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

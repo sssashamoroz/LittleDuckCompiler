@@ -20,6 +20,9 @@ class ParserHelper {
     private(set) var jumpStack: [Int] = [] // To manage jump targets
     
     private var currentScope: String = "global"
+    
+    private var currentFunctionParameters: [String] = []  // Tracks the parameter types of the current function
+    private var parameterIndex: Int = 0                  // Tracks the current parameter being validated
 
     private init() {}
 
@@ -170,4 +173,56 @@ class ParserHelper {
     func resetScope() {
         setCurrentScope("global") // Reset to global scope
     }
+    
+    //Verify Parameters
+    
+    func getExpectedParameterType() -> String? {
+        guard parameterIndex < currentFunctionParameters.count else {
+            print("Error: Parameter index out of bounds.")
+            return nil
+        }
+        return currentFunctionParameters[parameterIndex]
+    }
+    
+    func getCurrentParameterIndex() -> Int {
+        return parameterIndex
+    }
+    
+    func initializeParameterProcessing(forFunction functionName: String) {
+        guard let functionInfo = FunctionDirectory.shared.getFunction(name: functionName) else {
+            fatalError("Function \(functionName) not found in FunctionDirectory.")
+        }
+        currentFunctionParameters = functionInfo.parameterTypes
+        parameterIndex = 0
+    }
+    
+    func validateParameter(argument: String, type: String) -> Bool {
+        guard parameterIndex < currentFunctionParameters.count else {
+            print("Error: Too many arguments for function.")
+            return false
+        }
+        let expectedType = currentFunctionParameters[parameterIndex]
+        if type != expectedType {
+            print("Error: Argument \(argument) has type \(type), but expected \(expectedType).")
+            return false
+        }
+        parameterIndex += 1
+        return true
+    }
+    
+    func verifyParameters(forFunction functionName: String) -> Bool {
+        guard parameterIndex == currentFunctionParameters.count else {
+            print("Error: Mismatched number of parameters for function \(functionName).")
+            return false
+        }
+        return true
+    }
+    
+    // Resets parameter tracking
+    func resetParameterTracking() {
+        currentFunctionParameters = []
+        parameterIndex = 0
+    }
+    
+    
 }
