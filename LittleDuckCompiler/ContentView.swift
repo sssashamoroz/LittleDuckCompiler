@@ -24,24 +24,18 @@ struct ContentView: View {
     program testFunctions;
     vars
         x : int;
-    
-    void function(x: int)
-    {   
-        vars y: int;    
-        {
-         y = 10;
-         x = x - y;
-        }
-    };
-    
-    
+        y : int;
+
     begin
     {
         x = 0;
-        while (x < 5) do
+        y = 5;
+        
+        while ( x < y ) do 
         {
             x = x + 1;
-        };
+        }
+    
     }
     end
     """
@@ -49,6 +43,10 @@ struct ContentView: View {
     @State private var parseTreeOutput: String = "" // For displaying the Parse Tree
     @State private var quadrupleOutput: String = "" // For displaying the Quadruples
     @State private var variableTableOutput: String = "" // For displaying the Variable
+    
+    @State private var executionOutput: String = "" // For displaying VM execution results
+    
+    @State private var memory: [String: Any] = [:] // Memory state for display
     
     
     var body: some View {
@@ -77,6 +75,18 @@ struct ContentView: View {
                             Text("Parse Code")
                                 .frame(width: 130, height: 50)
                                 .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                        .padding(.top, 8)
+                        
+                        Button(action: {
+                            // Execute the parsed quadruples
+                            handleExecution()
+                        }) {
+                            Text("Run Code")
+                                .frame(width: 130, height: 50)
+                                .background(Color.green)
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
@@ -123,8 +133,40 @@ struct ContentView: View {
                         .border(Color.gray, width: 1)
                         
                     }
+                    .frame(height: 100)
+                    
                 }
                 
+                VStack(alignment: .leading) {
+                    Text("Execution Output")
+                        .font(.headline)
+                        .padding(.bottom, 8)
+                    
+                    ScrollView {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text("Variable")
+                                    .fontWeight(.bold)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text("Value")
+                                    .fontWeight(.bold)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .padding(.bottom, 8)
+                            
+                            ForEach(memory.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                                HStack {
+                                    Text(key)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Text("\(value)")
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                    .border(Color.gray, width: 1)
+                }
                 
             }
             
@@ -169,6 +211,31 @@ struct ContentView: View {
             self.quadrupleOutput = "Error: \(message)"
         } catch {
             self.quadrupleOutput = "Unexpected error: \(error)"
+        }
+    }
+    
+    private func handleExecution() {
+        do {
+            // Fetch the quadruples from the previous parsing step
+            let quadruples = QuadrupleGenerator.shared.getQuadruples()
+            
+            // Initialize the Virtual Machine
+            let vm = VirtualMachine(quadruples: quadruples)
+            
+            // Clear previous execution output
+            self.executionOutput = ""
+            
+            // Execute the quadruples
+            vm.execute()
+            
+            // Update the memory state for display
+            self.memory = vm.memory
+            
+            // Update the output with VM memory state
+            self.executionOutput = "Execution Complete\nMemory State:\n\(vm.memory)"
+            
+        } catch {
+            self.executionOutput = "Error during execution: \(error)"
         }
     }
 }

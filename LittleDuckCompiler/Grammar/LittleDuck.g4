@@ -285,42 +285,50 @@ assignment
 
 conditional
     : 'if' '(' comparisonExpression ')' {
-
+        // Generate GotoF for the condition
         guard let conditionOperand = ParserHelper.shared.popOperand() else {
             fatalError("Missing condition operand for IF statement")
         }
 
-        // Generate GotoF immediately
-        let jumpQuadIndex = QuadrupleGenerator.shared.addQuadruple(op: "GotoF", operand1: conditionOperand, operand2: "", result: "")
-        ParserHelper.shared.pushJump(jumpQuadIndex) // Push index for backpatching
+        let gotoFalseIndex = QuadrupleGenerator.shared.addQuadruple(op: "GotoF", operand1: conditionOperand, operand2: "_", result: "")
+        ParserHelper.shared.pushJump(gotoFalseIndex) // Push GotoF index for backpatching
     }
     body {
-        // Backpatch GotoF to jump to the end of the body
-        guard let jumpIndex = ParserHelper.shared.popJump() else {
-            fatalError("No jump to backpatch for IF statement")
-        }
-        QuadrupleGenerator.shared.fillJumpTarget(jumpIndex, with: QuadrupleGenerator.shared.currentQuadrupleIndex)
+        // After parsing the IF block, generate the Goto to skip the ELSE block
+        let gotoIndex = QuadrupleGenerator.shared.addQuadruple(op: "Goto", operand1: "_", operand2: "_", result: "")
     }
-    elseBody
+    'else' {
+        // Backpatch the GotoF to jump to the start of the ELSE block
+        guard let gotoFalseIndex = ParserHelper.shared.popJump() else {
+            fatalError("No GotoF index to backpatch for IF statement")
+        }
+        Swift.print("HERE STARTS ELSE \(QuadrupleGenerator.shared.currentQuadrupleIndex)")
+        QuadrupleGenerator.shared.fillJumpTarget(gotoFalseIndex, with: QuadrupleGenerator.shared.currentQuadrupleIndex)
+        ParserHelper.shared.pushJump(gotoIndex) // Push Goto index for backpatching
+
+    }
+    body {
+        // Backpatch the Goto to skip the ELSE block
+        guard let gotoIndex = ParserHelper.shared.popJump() else {
+            fatalError("No Goto index to backpatch for ELSE statement")
+        }
+        QuadrupleGenerator.shared.fillJumpTarget(gotoIndex, with: QuadrupleGenerator.shared.currentQuadrupleIndex)
+    }
 ;
 
 elseBody
-    : 'else' body {
-        // Generate an unconditional Goto to skip the `else` body
-        let elseJump = QuadrupleGenerator.shared.addUnconditionalJump()
-        ParserHelper.shared.pushJump(elseJump)
-
-        // Backpatch the previous GotoF to skip to this part
-        guard let ifFalseJump = ParserHelper.shared.popJump() else {
-            fatalError("No jump to backpatch for IF statement")
-        }
-        QuadrupleGenerator.shared.fillJumpTarget(ifFalseJump, with: QuadrupleGenerator.shared.currentQuadrupleIndex)
-    }
+    : 'else' body
     | // epsilon
 ;
 
 loop
-    : 'while' '(' comparisonExpression ')' 'do' {
+    : 'while'
+    {
+    
+          let loopEvaluationindex = QuadrupleGenerator.shared.currentQuadrupleIndex
+    }
+    
+    '(' comparisonExpression ')' 'do' {
           // Save the current quadruple index as the loop's start point
           let loopStartIndex = QuadrupleGenerator.shared.currentQuadrupleIndex
           ParserHelper.shared.pushJump(loopStartIndex) // Push start index to jump stack
@@ -339,7 +347,7 @@ loop
           guard let loopStartIndex = ParserHelper.shared.popJump() else {
               fatalError("Missing loop start index for WHILE loop")
           }
-          QuadrupleGenerator.shared.addQuadruple(op: "Goto", operand1: "_", operand2: "_", result: "\(loopStartIndex)")
+          QuadrupleGenerator.shared.addQuadruple(op: "Goto", operand1: "_", operand2: "_", result: "\(loopEvaluationindex)")
 
           // Backpatch the GotoF to jump to the end of the loop body
           guard let gotoFalseIndex = ParserHelper.shared.popJump() else {
