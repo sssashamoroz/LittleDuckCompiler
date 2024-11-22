@@ -34,8 +34,16 @@ struct ContentView: View {
         while ( x < y ) do 
         {
             x = x + 1;
+            if ( x == 4 ) 
+            {
+                y = 6;                  
+            }
+            else
+            {
+               y = 0;
+            }
         }
-    
+            
     }
     end
     """
